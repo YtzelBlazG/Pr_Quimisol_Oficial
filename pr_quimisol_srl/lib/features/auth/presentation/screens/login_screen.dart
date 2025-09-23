@@ -6,6 +6,7 @@ import '../../../../shared/widgets/gradient_background.dart';
 import '../../../../shared/widgets/rounded_card.dart';
 import '../../../../shared/widgets/social_button.dart';
 import '../widgets/login_header.dart';
+import 'register_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -62,11 +63,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
-                // Confirm password (aparece al tocar el TextButton)
+                // Confirm password (solo si está en modo registro)
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
                   child: _showConfirm
                       ? Padding(
                           key: const ValueKey('confirm'),
@@ -76,35 +75,33 @@ class _LoginPageState extends State<LoginPage> {
                             obscureText: true,
                             decoration: const InputDecoration(
                               hintText: 'Confirme su contraseña',
-                              prefixIcon:
-                                  Icon(Icons.lock_outline, color: Palette.primary),
+                              prefixIcon: Icon(Icons.lock_outline, color: Palette.primary),
                             ),
                           ),
                         )
                       : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
 
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Checkbox(value: false, onChanged: (v) {}),
-                    const Text('Recordarme', style: TextStyle(color: Palette.primary)),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text('¿Olvidaste tu contraseña?',
-                          style: TextStyle(color: Palette.primary)),
-                    ),
-                  ],
-                ),
-
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {
-                    // Aquí podrías validar si _showConfirm está activo y comparar pass/confirm
+                    if (_showConfirm) {
+                      // Ir al formulario de datos personales
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegisterPage()),
+                      );
+                    } else {
+                      // Aquí iría la lógica de login normal
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Login ejecutado')),
+                      );
+                    }
                   },
-                  child: const Text('INICIAR SESIÓN',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    _showConfirm ? 'CONTINUAR REGISTRO' : 'INICIAR SESIÓN',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
 
                 const SizedBox(height: 18),
@@ -131,9 +128,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 10),
                 TextButton(
-                  onPressed: () {
-                    setState(() => _showConfirm = !_showConfirm);
-                  },
+                  onPressed: () => setState(() => _showConfirm = true),
                   child: const Text(
                     '¿No tienes una cuenta? Crear cuenta',
                     style: TextStyle(color: Palette.primary),
