@@ -40,8 +40,7 @@ class _LoginPageState extends State<LoginPage> {
           child: RoundedCard(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                const LoginHeader(),
+              children: [const LoginHeader(),
 
                 // Usuario
                 TextField(
@@ -81,7 +80,7 @@ class _LoginPageState extends State<LoginPage> {
                         )
                       : const SizedBox.shrink(key: ValueKey('empty')),
                 ),
-
+              
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {

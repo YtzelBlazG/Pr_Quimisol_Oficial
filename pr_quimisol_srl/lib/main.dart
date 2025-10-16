@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'app/app.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'app/app_module.dart';
+import 'app/app_widget.dart';
 
-void main() => runApp(const App());
-
-class MyApp extends App {
-  const MyApp({super.key});
+void main() {
+  runApp(ModularApp(module: AppModule(), child: const AppWidget()));
 }

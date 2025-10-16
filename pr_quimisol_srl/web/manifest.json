@@ -1,6 +1,6 @@
 {
-    "name": "pr_quimisol_srl",
-    "short_name": "pr_quimisol_srl",
+    "name": "quimisol",
+    "short_name": "quimisol",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

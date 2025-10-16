@@ -1,4 +1,4 @@
-# pr_quimisol_srl
+# quimisol
 
 A new Flutter project.
 
