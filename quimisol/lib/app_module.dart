@@ -16,8 +16,6 @@ import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_pag
 // import 'package:quimisol/features/admin/presentatios/screens/admin_page.dart';
 // import 'package:quimisol/features/admin/presentatios/screens/admin_dashboard_page.dart';
 
-// Pantalla de Usuarios (refactor, bajo presentation/)
-import 'package:quimisol/features/admin/presentation/screens/admin_user_page.dart';
 
 // ====== PAGES PRODUCTOS ======
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
@@ -31,14 +29,11 @@ import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart';
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
 
-// ====== LAYOUT WRAPPER (opcional) ======
-import 'package:quimisol/shared/widgets/MainLayout.dart';
 
 // ============================================================
 // ==  SECCIÓN: CLIENTES (Screens base)
 // ============================================================
 import 'package:quimisol/features/splash/screens/splash_screen.dart';
-import 'package:quimisol/features/home/screens/home_page.dart';
 import 'package:quimisol/features/locations/screens/add_location_map_page.dart';
 
 // ====== (NUEVO) CLIENTE: Carrito & Pedidos ======
