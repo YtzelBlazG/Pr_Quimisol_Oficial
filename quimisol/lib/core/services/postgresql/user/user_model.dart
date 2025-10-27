@@ -2,7 +2,8 @@ class UserModel {
   final int idUsuario;
   final int idPersona;
   final String correo;
-  final String rol; // ✅ nuevo
+  final String rol;
+  final String telefono; // ✅ NUEVO CAMPO
   final DateTime createdOn;
   final DateTime? updatedOn;
   final DateTime? deletedOn;
@@ -11,7 +12,8 @@ class UserModel {
     required this.idUsuario,
     required this.idPersona,
     required this.correo,
-    required this.rol, // 👈 requerido
+    required this.rol,
+    required this.telefono, // ✅ NUEVO
     required this.createdOn,
     this.updatedOn,
     this.deletedOn,
@@ -22,7 +24,8 @@ class UserModel {
       idUsuario: json['idusuario'] as int,
       idPersona: json['idpersona'] as int,
       correo: json['correo'] ?? '',
-      rol: (json['rol'] ?? 'cliente').toString().toLowerCase(), // 👈 default cliente
+      rol: (json['rol'] ?? 'cliente').toString().toLowerCase(),
+      telefono: json['telefono'] ?? '', // ✅ NUEVO
       createdOn: DateTime.parse(json['createdon']),
       updatedOn: json['updatedon'] != null
           ? DateTime.tryParse(json['updatedon'])
@@ -38,7 +41,8 @@ class UserModel {
       'idusuario': idUsuario,
       'idpersona': idPersona,
       'correo': correo,
-      'rol': rol, // ✅ incluir rol en JSON
+      'rol': rol,
+      'telefono': telefono, // ✅ NUEVO
       'createdon': createdOn.toIso8601String(),
       'updatedon': updatedOn?.toIso8601String(),
       'deletedon': deletedOn?.toIso8601String(),

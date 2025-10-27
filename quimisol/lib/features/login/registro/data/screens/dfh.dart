@@ -1,3 +1,4 @@
+// IMPORTS
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -6,7 +7,8 @@ import '../../../../../core/theme/palette.dart';
 import '../../../../../shared/widgets/gradient_background.dart';
 import '../../../../../shared/widgets/rounded_card.dart';
 import '../../../../../shared/widgets/social_button.dart';
-import '../../../../../shared/buttons/app_button.dart'; // botón reusable
+import '../../../../../shared/buttons/app_button.dart';
+import 'request_code_screen.dart';
 import '../widgets/login_header.dart';
 import '../services/user_service.dart';
 import '../../../../../core/storage/auth_storage.dart';
@@ -19,23 +21,24 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static const Duration _socialDelay = Duration(seconds: 2);
-
   final _nameController = TextEditingController();
   final _userController = TextEditingController();
   final _passController = TextEditingController();
+  final _telefonoController = TextEditingController();
 
   final _service = UserService();
 
   bool _isLoading = false;
   bool _showRegister = false;
   bool _hidePassword = true;
+  String _passwordStrength = '';
 
   @override
   void dispose() {
     _nameController.dispose();
     _userController.dispose();
     _passController.dispose();
+    _telefonoController.dispose();
     super.dispose();
   }
 
@@ -45,51 +48,49 @@ class _LoginPageState extends State<LoginPage> {
     final nombre = _showRegister ? _nameController.text.trim() : null;
     final correo = _userController.text.trim();
     final pass = _passController.text;
+    final telefono = _showRegister ? _telefonoController.text.trim() : '';
 
     if (_showRegister) {
-      // ---------- REGISTRO ----------
       if (nombre == null || nombre.isEmpty) {
         return _toast('Ingrese su nombre completo');
       }
-      if (!_isValidEmail(correo)) {
-        return _toast('Ingrese un correo válido');
+      if (telefono.isEmpty) {
+        return _toast('Ingrese su número de teléfono');
       }
-      if (pass.isEmpty) {
-        return _toast('Ingrese su contraseña');
+      if (!_isValidPhone(telefono)) {
+        return _toast('Teléfono inválido (solo números de 7 a 12 dígitos)');
+      }
+      if (!_isValidEmail(correo)) {
+        return _toast('Correo inválido');
+      }
+      if (!_isStrongPassword(pass)) {
+        return _toast('Contraseña débil. Debe tener al menos 8 caracteres, mayúsculas, minúsculas, números y símbolos');
       }
 
       setState(() => _isLoading = true);
       try {
-        final res = await _service.register(nombre, correo, pass);
-        final idPersona = res is Map && res['idpersona'] is int
-            ? res['idpersona'] as int
-            : null;
+        final res = await _service.register(nombre, correo, pass, telefono);
+        final idPersona = res is Map && res['idpersona'] is int ? res['idpersona'] as int : null;
 
         await AuthStorage.saveUser(
           nombre: nombre,
           correo: correo,
           idPersona: idPersona,
+          telefono: telefono,
           rol: 'cliente',
         );
 
         _toast('Registro exitoso');
-
         if (!mounted) return;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Modular.to.pushReplacementNamed('/home-user', arguments: {
-            'nombre': nombre,
-            'correo': correo,
-          });
-        });
+        Modular.to.pushReplacementNamed('/home-user', arguments: {'nombre': nombre, 'correo': correo});
       } catch (e) {
         _toast('Error al registrarse: $e');
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
     } else {
-      // ---------- LOGIN ----------
       if (!_isValidEmail(correo)) {
-        return _toast('Ingrese un correo válido');
+        return _toast('Correo inválido');
       }
       if (pass.isEmpty) {
         return _toast('Ingrese su contraseña');
@@ -98,15 +99,13 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => _isLoading = true);
       try {
         final res = await _service.login(correo, pass);
-
         final usr = (res is Map && res['usuario'] is Map)
             ? (res['usuario'] as Map<String, dynamic>)
             : <String, dynamic>{};
 
         final nombreOk = (usr['nombre'] ?? '') as String?;
         final correoOk = (usr['correo'] ?? correo) as String?;
-        final idPersona =
-            usr['idpersona'] is int ? usr['idpersona'] as int : null;
+        final idPersona = usr['idpersona'] is int ? usr['idpersona'] as int : null;
         final rol = (usr['rol'] ?? 'cliente').toString().toLowerCase();
         final telefonoOk = (usr['telefono'] ?? '') as String?;
 
@@ -121,15 +120,9 @@ class _LoginPageState extends State<LoginPage> {
         _toast('Inicio de sesión exitoso');
 
         if (!mounted) return;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (rol == 'admin') {
-            Modular.to.pushReplacementNamed('/admin');
-          } else {
-            Modular.to.pushReplacementNamed('/home-user', arguments: {
-              'nombre': nombreOk,
-              'correo': correoOk,
-            });
-          }
+        Modular.to.pushReplacementNamed(rol == 'admin' ? '/admin' : '/home-user', arguments: {
+          'nombre': nombreOk,
+          'correo': correoOk,
         });
       } catch (e) {
         _toast('Error al iniciar sesión: $e');
@@ -139,17 +132,64 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _toggleMode() => setState(() => _showRegister = !_showRegister);
-
+  // ===== VALIDACIONES =====
   bool _isValidEmail(String v) {
-    final r = RegExp(r'^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+    final r = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
     return r.hasMatch(v);
+  }
+
+  bool _isValidPhone(String v) {
+    final r = RegExp(r'^[0-9]{7,12}$');
+    return r.hasMatch(v);
+  }
+
+  bool _isStrongPassword(String v) {
+    final hasMinLength = v.length >= 8;
+    final hasUpper = v.contains(RegExp(r'[A-Z]'));
+    final hasLower = v.contains(RegExp(r'[a-z]'));
+    final hasNumber = v.contains(RegExp(r'[0-9]'));
+    final hasSymbol = v.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]'));
+    return hasMinLength && hasUpper && hasLower && hasNumber && hasSymbol;
+  }
+
+  Color _getPasswordStrengthColor() {
+    switch (_passwordStrength) {
+      case 'Fuerte':
+        return Colors.green;
+      case 'Media':
+        return Colors.orange;
+      default:
+        return Colors.red;
+    }
+  }
+
+  void _updatePasswordStrength(String value) {
+    final score = [
+      value.length >= 8,
+      value.contains(RegExp(r'[A-Z]')),
+      value.contains(RegExp(r'[a-z]')),
+      value.contains(RegExp(r'[0-9]')),
+      value.contains(RegExp(r'[!@#\$%^&*(),.?":{}|<>]')),
+    ].where((x) => x).length;
+
+    setState(() {
+      if (score >= 4) {
+        _passwordStrength = 'Fuerte';
+      } else if (score >= 3) {
+        _passwordStrength = 'Media';
+      } else {
+        _passwordStrength = 'Débil';
+      }
+    });
   }
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  void _toggleMode() => setState(() => _showRegister = !_showRegister);
+
+  // ===== UI =====
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -177,57 +217,99 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 const LoginHeader(),
 
-                // Nombre completo (solo registro)
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: _showRegister
-                      ? Padding(
-                          key: const ValueKey('nombre'),
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: TextField(
-                            controller: _nameController,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
-                              hintText: 'Ingrese su nombre completo',
-                              prefixIcon:
-                                  Icon(Icons.person, color: Palette.primary),
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(key: ValueKey('empty-nombre')),
-                ),
+                if (_showRegister)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: TextField(
+                      controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        hintText: 'Nombre completo',
+                        prefixIcon: Icon(Icons.person, color: Palette.primary),
+                      ),
+                    ),
+                  ),
+                if (_showRegister)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: TextField(
+                      controller: _telefonoController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        hintText: 'Teléfono',
+                        prefixIcon: Icon(Icons.phone, color: Palette.primary),
+                      ),
+                    ),
+                  ),
 
-                // Correo
                 TextField(
                   controller: _userController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    hintText: 'Ingrese su correo',
+                    hintText: 'Correo',
                     prefixIcon: Icon(Icons.email, color: Palette.primary),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // Contraseña
                 TextField(
                   controller: _passController,
                   obscureText: _hidePassword,
+                  onChanged: _updatePasswordStrength,
                   decoration: InputDecoration(
-                    hintText: 'Ingrese su contraseña',
+                    hintText: 'Contraseña',
                     prefixIcon: const Icon(Icons.lock, color: Palette.primary),
                     suffixIcon: IconButton(
                       onPressed: () =>
                           setState(() => _hidePassword = !_hidePassword),
                       icon: Icon(
                         _hidePassword
-                            ? Icons.visibility_rounded
-                            : Icons.visibility_off_rounded,
+                            ? Icons.visibility
+                            : Icons.visibility_off,
                       ),
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                // Indicador visual fuerza contraseña
+                if (_showRegister && _passController.text.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6.0, bottom: 10),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 10),
+                        Text(
+                          'Seguridad: ',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          _passwordStrength,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _getPasswordStrengthColor(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const RequestCodeScreen()),
+                        );
+                      },
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(color: Palette.primary),
+                      ),
+                    ),
+                  ],
+                ),
 
                 AppButton(
                   label: _showRegister ? 'REGISTRARSE' : 'INICIAR SESIÓN',
@@ -236,24 +318,14 @@ class _LoginPageState extends State<LoginPage> {
                 ),
 
                 const SizedBox(height: 18),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SocialButton(
-                      icon: FontAwesomeIcons.google,
-                      onPressed: () async => await Future.delayed(_socialDelay),
-                    ),
+                    SocialButton(icon: FontAwesomeIcons.google, onPressed: () {}),
                     const SizedBox(width: 10),
-                    SocialButton(
-                      icon: FontAwesomeIcons.facebookF,
-                      onPressed: () async => await Future.delayed(_socialDelay),
-                    ),
+                    SocialButton(icon: FontAwesomeIcons.facebookF, onPressed: () {}),
                     const SizedBox(width: 10),
-                    SocialButton(
-                      icon: FontAwesomeIcons.instagram,
-                      onPressed: () async => await Future.delayed(_socialDelay),
-                    ),
+                    SocialButton(icon: FontAwesomeIcons.instagram, onPressed: () {}),
                   ],
                 ),
 
@@ -262,8 +334,8 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: _isLoading ? null : _toggleMode,
                   child: Text(
                     _showRegister
-                        ? '¿Ya tienes una cuenta? Iniciar sesión'
-                        : '¿No tienes una cuenta? Crear cuenta',
+                        ? '¿Ya tienes cuenta? Inicia sesión'
+                        : '¿No tienes cuenta? Regístrate',
                     style: const TextStyle(color: Palette.primary),
                   ),
                 ),
