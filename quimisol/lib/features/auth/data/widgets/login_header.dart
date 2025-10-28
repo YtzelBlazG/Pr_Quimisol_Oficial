@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/palette.dart';
+import '../../../../../core/theme/palette.dart';
 
 class LoginHeader extends StatelessWidget {
   const LoginHeader({super.key});

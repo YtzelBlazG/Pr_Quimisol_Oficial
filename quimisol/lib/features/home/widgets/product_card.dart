@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
-import 'package:quimisol/core/theme/palette.dart';
 
 class ProductCard extends StatelessWidget {
   final Producto producto;
@@ -19,12 +18,14 @@ class ProductCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor == Colors.white
-            ? Colors.white
-            : Theme.of(context).cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
@@ -32,8 +33,10 @@ class ProductCard extends StatelessWidget {
           Image.network(
             producto.imagen ?? '',
             height: 100,
-            errorBuilder: (_, __, ___) =>
-                const Icon(Icons.image_not_supported, size: 48),
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.image_not_supported,
+              size: 48,
+            ),
           ),
           const SizedBox(height: 10),
           Text(
@@ -43,14 +46,14 @@ class ProductCard extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: Palette.primary,
+              color: Color(0xFF432667),
             ),
           ),
           const Spacer(),
           ElevatedButton(
             onPressed: onViewMore,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Palette.primary,
+              backgroundColor: const Color(0xFF5D3A99),
               padding: const EdgeInsets.symmetric(horizontal: 12),
             ),
             child: const Text('Ver más', style: TextStyle(color: Colors.white)),

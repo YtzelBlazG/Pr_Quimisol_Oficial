@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quimisol/core/services/postgresql/carrito/carrito_service.dart';
 import 'package:quimisol/core/storage/auth_storage.dart';
-import 'package:quimisol/core/theme/palette.dart';
 
 class BotonAnadirCarrito extends StatelessWidget {
   final int idProducto;
@@ -15,14 +14,14 @@ class BotonAnadirCarrito extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton.filled(
+    return ElevatedButton(
       onPressed: () async {
         final idUsuario = await AuthStorage.getIdPersona();
 
         if (idUsuario == null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Debes iniciar sesión')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Debes iniciar sesión')),
+          );
           return;
         }
 
@@ -38,16 +37,18 @@ class BotonAnadirCarrito extends StatelessWidget {
             );
           }
         } catch (e) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(e.toString())));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString())),
+          );
         }
       },
-      icon: const Icon(Icons.shopping_cart_outlined),
-      style: IconButton.styleFrom(
-        backgroundColor: Palette.button,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.purple,
         foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      child: const Text('Añadir a la cesta'),
     );
   }
 }

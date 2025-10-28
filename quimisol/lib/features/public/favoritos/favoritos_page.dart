@@ -64,7 +64,7 @@ class _FavoritosPageState extends State<FavoritosPage> {
                 ),
                 itemBuilder: (_, index) {
                   final producto = favoritos.favoritos[index];
-                  return ProductoCard(producto: producto); // ✅ solo esto
+                  return ProductoCard(producto: producto); 
                 },
               ),
       ),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quimisol/core/providers/favoritos_provider.dart';
+import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_page.dart';
 import 'package:quimisol/features/admin/productos/widgets/producto_detalle_modal.dart';
-import 'package:quimisol/shared/buttons/boton_anadir_carrito.dart';
-import 'package:quimisol/shared/buttons/fav_button.dart';
+
 
 class ProductoCard extends StatelessWidget {
   final Map<String, dynamic> producto;
@@ -14,7 +14,10 @@ class ProductoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final favoritos = Provider.of<FavoritosProvider>(context);
     final idProducto = producto['idproducto'];
-    favoritos.esFavorito(idProducto);
+    final esFavorito = favoritos.esFavorito(idProducto);
+
+    // Usamos el campo correcto del backend
+    final bool agotado = (producto['stock_disponible'] ?? 0) == 0;
 
     return GestureDetector(
       onTap: () {
@@ -24,78 +27,111 @@ class ProductoCard extends StatelessWidget {
         );
       },
       child: Card(
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: 2,
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Imagen + AGOTADO + botones
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.network(
+                      producto['imagen'] ?? '',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.broken_image, size: 80),
+                    ),
+                  ),
 
-              // === Imagen + Botón favorito ===
-              SizedBox(
-                height: 100,
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Image.network(
-                        producto['imagen'] ?? '',
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.inventory_2_outlined,
-                          size: 50,
-                          color: Colors.grey,
+                  // Overlay AGOTADO
+                  if (agotado)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.4),
+                        alignment: Alignment.center,
+                        child: const Text(
+                          'AGOTADO',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            shadows: [Shadow(blurRadius: 2)],
+                          ),
                         ),
                       ),
                     ),
-                   Positioned(
-                        top: 0, right: 0,
-                        child: FavButton(producto: producto),
+
+                  // Favoritos
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: IconButton(
+                        icon: Icon(
+                          esFavorito ? Icons.favorite : Icons.favorite_border,
+                          color: esFavorito ? Colors.red : Colors.grey[800],
+                          size: 18,
+                        ),
+                        onPressed: () => favoritos.toggleFavorito(producto),
                       ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // === Nombre: alineado a la izquierda, más grande y negrilla ===
-              Text(
-                producto['nombre'] ?? 'Sin nombre',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 6),
-
-              // === Precio + Botón carrito ===
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Precio
-                  Text(
-                    '${producto['precio'] ?? 0} Bs',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
                     ),
                   ),
 
-                  // Botón carrito
-                  SizedBox(
-                    width: 36,
-                    height: 36,
-                    child: BotonAnadirCarrito(idProducto: idProducto),
+                  // Detalle
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: IconButton(
+                        icon: const Icon(Icons.add, color: Colors.purple),
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (_) =>
+                                ProductoDetalleModal(producto: producto),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+
+            // Texto: nombre y precio
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    producto['nombre'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Bs ${producto['precio']}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF4A3B59),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

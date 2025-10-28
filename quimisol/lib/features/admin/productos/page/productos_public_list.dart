@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:quimisol/core/theme/palette.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import 'package:quimisol/core/providers/favoritos_provider.dart';
 import 'package:quimisol/features/admin/productos/widgets/producto_card.dart';
-import 'package:quimisol/core/theme/palette.dart';
 
 class ProductosPublicList extends StatefulWidget {
   const ProductosPublicList({super.key});
@@ -32,7 +32,7 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
       listen: false,
     );
     favoritosProvider
-        .checkAndUpdateUsuario(); // 👈 Asegura que esté usando el usuario correcto
+        .checkAndUpdateUsuario(); // Asegura que esté usando el usuario correcto
   }
 
   Future<void> cargarProductos() async {

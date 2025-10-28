@@ -8,7 +8,7 @@ import 'package:quimisol/core/providers/favoritos_provider.dart';
 
 import 'package:quimisol/features/admin/productos/page/productos_public_list.dart';
 import 'package:quimisol/features/public/favoritos/favoritos_page.dart';
-import 'package:quimisol/features/public/pages/carrito_page.dart';
+import 'package:quimisol/features/public/pages/carrito_page.dart'; 
 
 class HomeUserPage extends StatefulWidget {
   const HomeUserPage({super.key});
@@ -29,13 +29,13 @@ class _HomeUserPageState extends State<HomeUserPage> {
       case 2:
         return const FavoritosPage();
       case 3:
-        return const CarritoPage();
+        return const CarritoPage(); 
       default:
         return const Center(child: Text("Página no encontrada"));
     }
   }
 
-  /// 🔒 Logout completo: limpia sesión y favoritos
+  // Logout completo: limpia sesión y favoritos
   Future<void> _onLogout() async {
     await AuthStorage.clear(); // 1. Limpia SharedPreferences
 
@@ -47,7 +47,7 @@ class _HomeUserPageState extends State<HomeUserPage> {
     Modular.to.navigate('/home-guest');
   }
 
-  /// 👤 Mostrar menú de cuenta
+  // Mostrar menú de cuenta
   void _showUserDrawer() async {
     final nombre = await AuthStorage.getNombre();
     final correo = await AuthStorage.getCorreo();
@@ -68,7 +68,10 @@ class _HomeUserPageState extends State<HomeUserPage> {
               nombre ?? "Invitado",
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
-            Text(correo ?? "", style: const TextStyle(color: Colors.black54)),
+            Text(
+              correo ?? "",
+              style: const TextStyle(color: Colors.black54),
+            ),
             const Divider(height: 30),
             ListTile(
               leading: const Icon(Icons.logout),
@@ -87,8 +90,7 @@ class _HomeUserPageState extends State<HomeUserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Use the app's scaffold background (white or gentle gradient if theme changes)
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Palette.fieldBg,
       body: _buildPage(_currentIndex),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -98,14 +100,8 @@ class _HomeUserPageState extends State<HomeUserPage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Productos'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Favoritos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Carrito',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favoritos'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Carrito'),
         ],
       ),
       floatingActionButton: FloatingActionButton(

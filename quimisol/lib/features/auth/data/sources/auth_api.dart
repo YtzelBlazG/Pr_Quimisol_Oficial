@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import '../../../../core/network/dio_client.dart';
-import '../../../../core/config/api_endpoints.dart';
+import '../../../../../core/network/dio_client.dart';
+import '../../../../../core/config/api_endpoints.dart';
 
 class AuthApi {
   final Dio _dio = DioClient.instance;

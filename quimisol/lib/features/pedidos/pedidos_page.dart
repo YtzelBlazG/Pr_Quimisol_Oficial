@@ -189,7 +189,7 @@ class _PedidosPageState extends State<PedidosPage>
                     ),
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Palette.primary.withOpacity(0.12),
+                        backgroundColor: Palette.primary,
                         child: const Icon(
                           Icons.inventory_2,
                           color: Palette.primary,
@@ -205,10 +205,7 @@ class _PedidosPageState extends State<PedidosPage>
                       ),
                       trailing: Text(
                         '$sub Bs',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Palette.secButton,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
                   );
@@ -225,7 +222,7 @@ class _PedidosPageState extends State<PedidosPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: const Color(0xfff8f6fb),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -237,8 +234,8 @@ class _PedidosPageState extends State<PedidosPage>
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Palette.primary,
-          labelColor: Palette.primary,
+          indicatorColor: Palette.secondary,
+          labelColor: Palette.secondary,
           unselectedLabelColor: Colors.grey,
           tabs: estados.map((e) => Tab(text: e.toUpperCase())).toList(),
         ),

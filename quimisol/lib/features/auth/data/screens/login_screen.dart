@@ -61,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
 
       setState(() => _isLoading = true);
       try {
-        final res = await _service.register(nombre, correo, pass);
+        final res = await _service.register(nombre, correo, pass, '');
         // Tu API suele devolver: { ok, message, idpersona, correo }
         final idPersona = res is Map && res['idpersona'] is int
             ? res['idpersona'] as int
