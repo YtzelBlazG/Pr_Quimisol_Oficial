@@ -29,28 +29,25 @@ class UsuarioDto {
         email: (j['correo'] ?? '').toString(),
         username: j['username']?.toString(),
         rol: j['rol']?.toString(),
-        // 👇 AQUÍ EL CAMBIO: tu API manda `estado`
+        // 👇 tu API manda `estado`
         activo: _toBoolEstado(j['estado']),
       );
 
-  // Convierte lo que venga (bool, int, string) a bool?
   static bool? _toBoolEstado(dynamic v) {
     if (v == null) return null;
     if (v is bool) return v;
-    if (v is num) return v != 0; // 1/0
+    if (v is num) return v != 0;
     final s = v.toString().trim().toLowerCase();
-    if (['1', 'true', 't', 'activo', 'act', 'on', 'yes', 'si', 'sí']
-        .contains(s)) return true;
-    if (['0', 'false', 'f', 'inactivo', 'inact', 'off', 'no'].contains(s))
-      return false;
-    return null; // valor desconocido
+    if (['1', 'true', 't', 'activo', 'act', 'on', 'yes', 'si', 'sí'].contains(s)) return true;
+    if (['0', 'false', 'f', 'inactivo', 'inact', 'off', 'no'].contains(s)) return false;
+    return null;
   }
 }
 
 class PersonaDto {
   final int idPersona;
-  final String? nombre; // tu backend trae 'nombre'
-  final String? telefono; // y 'telefono'
+  final String? nombre;
+  final String? telefono;
 
   PersonaDto({
     required this.idPersona,
@@ -89,10 +86,8 @@ class UbicacionDto {
         nombre: j['nombre']?.toString(),
         ciudad: j['ciudad']?.toString(),
         direccion: j['direccion']?.toString(),
-        latitud:
-            (j['latitud'] is num) ? (j['latitud'] as num).toDouble() : null,
-        longitud:
-            (j['longitud'] is num) ? (j['longitud'] as num).toDouble() : null,
+        latitud: (j['latitud'] is num) ? (j['latitud'] as num).toDouble() : null,
+        longitud: (j['longitud'] is num) ? (j['longitud'] as num).toDouble() : null,
       );
 }
 
@@ -124,12 +119,19 @@ class UserAdminService {
     _ensure200(uRes, 'GET /usuarios');
 
     final decoded = jsonDecode(uRes.body);
-    if (decoded is! List) {
+
+    // ✅ Tolerante: acepta array directo o { items: [...] }
+    final List rawList;
+    if (decoded is List) {
+      rawList = decoded;
+    } else if (decoded is Map && decoded['items'] is List) {
+      rawList = decoded['items'] as List;
+    } else {
       throw Exception('GET /usuarios: respuesta no es lista');
     }
-    final usuarios = decoded
-        .map<UsuarioDto>(
-            (e) => UsuarioDto.fromJson(Map<String, dynamic>.from(e)))
+
+    final usuarios = rawList
+        .map<UsuarioDto>((e) => UsuarioDto.fromJson(Map<String, dynamic>.from(e)))
         .toList();
 
     // 2) Para cada usuario, pedir persona + ubicaciones si tiene idPersona
@@ -147,7 +149,7 @@ class UserAdminService {
 
         final resp = await Future.wait([pF, ubF]);
 
-        // persona (tu API devuelve el objeto directo, sin {data})
+        // persona
         final pRes = resp[0];
         if (pRes.statusCode == 200) {
           final pj = jsonDecode(pRes.body);
@@ -156,7 +158,7 @@ class UserAdminService {
           }
         }
 
-        // ubicaciones (tu API devuelve lista directa)
+        // ubicaciones
         final ubRes = resp[1];
         if (ubRes.statusCode == 200) {
           final body = jsonDecode(ubRes.body);
@@ -167,8 +169,7 @@ class UserAdminService {
         }
       }
 
-      return UserAdminView(
-          usuario: u, persona: persona, ubicaciones: ubicaciones);
+      return UserAdminView(usuario: u, persona: persona, ubicaciones: ubicaciones);
     }));
 
     return views;
@@ -191,8 +192,7 @@ class UserAdminService {
         .timeout(const Duration(seconds: 12));
     _ensure200(res, 'GET /personas/$idPersona');
     final j = jsonDecode(res.body);
-    if (j is! Map)
-      throw Exception('GET /personas/$idPersona: formato inválido');
+    if (j is! Map) throw Exception('GET /personas/$idPersona: formato inválido');
     return PersonaDto.fromJson(Map<String, dynamic>.from(j));
   }
 
@@ -227,14 +227,13 @@ class UserAdminService {
     return UsuarioDto.fromJson(Map<String, dynamic>.from(j));
   }
 
-// === DELETE /usuarios/:id ===
+  // === DELETE /usuarios/:id ===
   Future<void> deleteUsuario(int id) async {
     final res = await http
         .delete(Uri.parse('$baseUrl/usuarios/$id'))
         .timeout(const Duration(seconds: 15));
     if (res.statusCode != 200 && res.statusCode != 204) {
-      throw Exception(
-          'DELETE /usuarios/$id → HTTP ${res.statusCode}: ${res.body}');
+      throw Exception('DELETE /usuarios/$id → HTTP ${res.statusCode}: ${res.body}');
     }
   }
 
