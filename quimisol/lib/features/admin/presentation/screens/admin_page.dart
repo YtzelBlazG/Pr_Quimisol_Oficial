@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/core/storage/auth_storage.dart';
+import 'package:quimisol/features/admin/categorias/page/categoria_list_page.dart';
 
 // Pantallas
 import 'package:quimisol/features/admin/presentation/screens/admin_user_page.dart';
@@ -13,6 +14,7 @@ import 'package:quimisol/features/login/registro/data/screens/profile_screen.dar
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_list_page.dart';
+
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -33,6 +35,7 @@ class _AdminPageState extends State<AdminPage>
     Tab(icon: Icon(Icons.dashboard), text: "Dashboard"),
     Tab(icon: Icon(Icons.people), text: "Usuarios"),
     Tab(icon: Icon(Icons.shopping_bag), text: "Productos"),
+    Tab(icon: Icon(Icons.category), text: "Categorías"), 
     Tab(icon: Icon(Icons.shopping_bag), text: "Unidades"),
     Tab(icon: Icon(Icons.shopping_bag), text: "Detalle Productos"),
     Tab(icon: Icon(Icons.settings), text: "Configuración"),
@@ -119,10 +122,11 @@ class _AdminPageState extends State<AdminPage>
               children: [
                 const AdminDashboardPage(),         // index 0
                 const AdminUserPage(),              // index 1
-                const ProductoListPage(),           // index 2
-                const UnidadListPage(),             // index 3
-                const DetalleProductoListPage(),    // index 4
-                _buildConfiguracion(context),       // index 5
+                const ProductoListPage(),      // index 2 
+                const CategoriaListPage(),            // index 3      
+                const UnidadListPage(),             // index 4
+                const DetalleProductoListPage(),    // index 5
+                _buildConfiguracion(context),       // index 6
               ],
             ),
           ),
@@ -183,22 +187,28 @@ class _AdminPageState extends State<AdminPage>
               onTap: () => _goToTab(2),
             ),
             _DrawerItem(
-              icon: Icons.shopping_bag,
-              text: "Unidades",
+              icon: Icons.category,
+              text: "Categorías",
               selected: current == 3,
               onTap: () => _goToTab(3),
             ),
             _DrawerItem(
               icon: Icons.shopping_bag,
-              text: "Detalle Productos",
+              text: "Unidades",
               selected: current == 4,
               onTap: () => _goToTab(4),
             ),
             _DrawerItem(
-              icon: Icons.settings,
-              text: "Configuración",
+              icon: Icons.shopping_bag,
+              text: "Detalle Productos",
               selected: current == 5,
               onTap: () => _goToTab(5),
+            ),
+            _DrawerItem(
+              icon: Icons.settings,
+              text: "Configuración",
+              selected: current == 6,
+              onTap: () => _goToTab(6),
             ),
             const Divider(),
             _DrawerItem(

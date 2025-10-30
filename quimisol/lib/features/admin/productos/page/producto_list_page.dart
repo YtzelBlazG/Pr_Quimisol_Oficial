@@ -33,11 +33,10 @@ class _ProductoListPageState extends State<ProductoListPage> {
   void _filtrarProductos() {
     final texto = _buscarCtrl.text.toLowerCase();
     setState(() {
-      productosFiltrados = productos
-          .where((p) =>
-              p.nombre.toLowerCase().contains(texto) ||
-              p.codigo.toLowerCase().contains(texto))
-          .toList();
+      productosFiltrados = productos.where((p) {
+        return p.nombre.toLowerCase().contains(texto) ||
+            p.codigo.toLowerCase().contains(texto);
+      }).toList();
     });
   }
 
@@ -89,7 +88,7 @@ class _ProductoListPageState extends State<ProductoListPage> {
         padding: const EdgeInsets.all(24),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
+            constraints: const BoxConstraints(maxWidth: 1200),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -152,8 +151,9 @@ class _ProductoListPageState extends State<ProductoListPage> {
                               1: FlexColumnWidth(3), // Nombre
                               2: FlexColumnWidth(2), // Código
                               3: FlexColumnWidth(3), // Descripción
-                              4: FlexColumnWidth(2), // Precio
-                              5: FlexColumnWidth(2), // Acciones
+                              4: FlexColumnWidth(2), // Categoría
+                              5: FlexColumnWidth(2), // Precio
+                              6: FlexColumnWidth(2), // Acciones
                             },
                             border: TableBorder.symmetric(
                               inside: BorderSide(color: Colors.grey.shade300),
@@ -190,6 +190,12 @@ class _ProductoListPageState extends State<ProductoListPage> {
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
+                                    child: Text('Categoría',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(8.0),
                                     child: Text('Precio (Bs)',
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold)),
@@ -203,11 +209,11 @@ class _ProductoListPageState extends State<ProductoListPage> {
                                 ],
                               ),
 
-                              /// Filas de datos
+                              /// Filas de productos
                               ...productosFiltrados.map((producto) {
                                 return TableRow(
-                                  decoration:
-                                      const BoxDecoration(color: Colors.white),
+                                  decoration: const BoxDecoration(
+                                      color: Colors.white),
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
@@ -219,14 +225,13 @@ class _ProductoListPageState extends State<ProductoListPage> {
                                                 backgroundImage: NetworkImage(
                                                     producto.imagen!),
                                                 onBackgroundImageError:
-                                                    (_, __) =>
-                                                        const Icon(Icons
-                                                            .broken_image),
+                                                    (_, __) => const Icon(
+                                                        Icons.broken_image),
                                               )
                                             : const CircleAvatar(
                                                 radius: 26,
-                                                child: Icon(
-                                                    Icons.image_not_supported),
+                                                child: Icon(Icons
+                                                    .image_not_supported),
                                               ),
                                       ),
                                     ),
@@ -245,7 +250,15 @@ class _ProductoListPageState extends State<ProductoListPage> {
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
-                                          "${producto.precio.toString()} Bs"),
+                                        producto.categoria_nombre ??
+                                            'Sin categoría',
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text('${producto.precio} Bs'),
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),

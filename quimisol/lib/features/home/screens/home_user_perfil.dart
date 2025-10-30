@@ -77,6 +77,7 @@ class _HomeUserPerfilState extends State<HomeUserPerfil> {
           _buildTile(Icons.location_on, "Direcciones", () {}),
           _buildTile(Icons.favorite, "Favoritos", () => Modular.to.pushNamed('/favoritos')),
 
+
           const SizedBox(height: 24),
           const Text("Configuración", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 10),

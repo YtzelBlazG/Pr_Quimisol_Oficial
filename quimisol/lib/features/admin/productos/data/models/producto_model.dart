@@ -4,15 +4,17 @@ class Producto {
   String nombre;
   String descripcion;
   int idunidad;
+  int idcategoria;
   String? imagen;
   double precio;
-
-  // 🔹 Campo adicional desde backend
   int stockDisponible;
 
   DateTime? createdon;
   DateTime? updatedon;
   DateTime? deletedon;
+
+  // ✅ Nuevo campo opcional para mostrar en tabla
+  String? categoria_nombre;
 
   Producto({
     this.idproducto,
@@ -20,12 +22,14 @@ class Producto {
     required this.nombre,
     required this.descripcion,
     required this.idunidad,
+    required this.idcategoria,
     required this.precio,
     this.imagen,
-    this.stockDisponible = 0, // ✅ valor por defecto
+    this.stockDisponible = 0,
     this.createdon,
     this.updatedon,
     this.deletedon,
+    this.categoria_nombre, // 👈 agregado aquí
   });
 
   factory Producto.fromJson(Map<String, dynamic> json) {
@@ -35,12 +39,16 @@ class Producto {
       nombre: json['nombre'] ?? '',
       descripcion: json['descripcion'] ?? '',
       idunidad: json['idunidad'] ?? 0,
+      idcategoria: json['idcategoria'] ?? 0,
       imagen: json['imagen'],
       precio: double.tryParse(json['precio'].toString()) ?? 0.0,
-      stockDisponible: int.tryParse(json['stock_disponible']?.toString() ?? '0') ?? 0, // ✅ nuevo
+      stockDisponible: int.tryParse(json['stock_disponible']?.toString() ?? '0') ?? 0,
       createdon: json['createdon'] != null ? DateTime.tryParse(json['createdon']) : null,
       updatedon: json['updatedon'] != null ? DateTime.tryParse(json['updatedon']) : null,
       deletedon: json['deletedon'] != null ? DateTime.tryParse(json['deletedon']) : null,
+
+      // ✅ lo mapeamos desde JSON
+      categoria_nombre: json['categoria_nombre'],
     );
   }
 
@@ -50,9 +58,12 @@ class Producto {
       'nombre': nombre,
       'descripcion': descripcion,
       'idunidad': idunidad,
+      'idcategoria': idcategoria,
       'imagen': imagen,
       'precio': precio,
-      // 🔹 stockDisponible NO se envía al backend
+
+      // ✅ opcional, por si lo quieres mandar en alguna parte
+      'categoria_nombre': categoria_nombre,
     };
   }
 }
