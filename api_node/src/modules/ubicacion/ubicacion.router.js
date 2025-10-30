@@ -2,9 +2,10 @@
 const router = require("express").Router();
 const { listByPersona, add, update, remove } = require("./ubicacion.controller");
 
-router.get("/:idpersona", listByPersona);
-router.post("/:idpersona", add);
-router.put("/:idubicacion", update);
-router.delete("/:idubicacion", remove);
+// ⚠️ RUTA EN PLURAL: /ubicaciones
+router.get("/:idpersona", listByPersona);   // GET  /ubicaciones/:idpersona
+router.post("/:idpersona", add);            // POST /ubicaciones/:idpersona
+router.put("/:idubicacion", update);        // PUT  /ubicaciones/:idubicacion
+router.delete("/:idubicacion", remove);     // DELETE /ubicaciones/:idubicacion
 
 module.exports = router;

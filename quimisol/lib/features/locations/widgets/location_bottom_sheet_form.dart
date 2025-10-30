@@ -1,130 +1,84 @@
 import 'package:flutter/material.dart';
-import '../../../shared/buttons/app_button.dart';
 
-class LocationBottomSheetForm extends StatelessWidget {
+class LocationBottomSheetForm extends StatefulWidget {
+  final String direccion;
+  final String ciudad;
+  final void Function(String nombre) onSave;
   const LocationBottomSheetForm({
     super.key,
-    required this.formKey,
-    required this.nameCtrl,
-    required this.dirCtrl,
-    required this.cityCtrl,
-    required this.lat,
-    required this.lng,
-    required this.expanded,
-    required this.isSubmitting,
-    required this.isGeocoding,
-    required this.onSubmit,
+    required this.direccion,
+    required this.ciudad,
+    required this.onSave,
   });
 
-  final GlobalKey<FormState> formKey;
-  final TextEditingController nameCtrl;
-  final TextEditingController dirCtrl;
-  final TextEditingController cityCtrl;
-  final double? lat;
-  final double? lng;
-  final bool expanded;
-  final bool isSubmitting;
-  final bool isGeocoding;
-  final VoidCallback onSubmit;
+  @override
+  State<LocationBottomSheetForm> createState() => _LocationBottomSheetFormState();
+}
+
+class _LocationBottomSheetFormState extends State<LocationBottomSheetForm> {
+  final _nameCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: formKey,
-      child: Column(
-        children: [
-          Container(
-            width: 44,
-            height: 5,
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: Colors.black12,
-              borderRadius: BorderRadius.circular(99),
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              "Ubicación de sucursal",
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w800),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            controller: nameCtrl,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: "Nombre ubicación",
-              hintText: "Ej: Sucursal Centro",
-              prefixIcon: Icon(Icons.flag),
-            ),
-            validator: (v) => (v == null || v.trim().isEmpty) ? "Requerido" : null,
-          ),
-          AnimatedCrossFade(
-            crossFadeState:
-                expanded ? CrossFadeState.showFirst : CrossFadeState.showSecond,
-            duration: const Duration(milliseconds: 200),
-            firstChild: Column(
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(width: 56, height: 6, decoration: BoxDecoration(
+              color: Colors.black26, borderRadius: BorderRadius.circular(8))),
+            const SizedBox(height: 16),
+            const Text('Ubicación de sucursal',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: dirCtrl,
-                  decoration: InputDecoration(
-                    labelText: "Dirección",
-                    hintText: "Se completa al elegir el punto o una sugerencia",
-                    prefixIcon: const Icon(Icons.place),
-                    suffixIcon: isGeocoding
-                        ? const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
-                        : null,
-                  ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? "Requerido" : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: cityCtrl,
-                  decoration: const InputDecoration(
-                    labelText: "Ciudad",
-                    hintText: "Se completa al elegir el punto o una sugerencia",
-                    prefixIcon: Icon(Icons.location_city),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? "Requerido" : null,
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    (lat == null || lng == null)
-                        ? "Toca el mapa o usa el buscador para fijar el punto"
-                        : "Lat: ${lat!.toStringAsFixed(6)}  •  Lng: ${lng!.toStringAsFixed(6)}",
-                    style: TextStyle(
-                      color: (lat == null) ? Colors.red : Colors.black54,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                AppButton(
-                  label: "Agregar",
-                  icon: Icons.check,
-                  isLoading: isSubmitting,
-                  onPressed: isSubmitting ? null : onSubmit,
-                ),
+                const Icon(Icons.location_on_outlined, size: 18),
+                const SizedBox(width: 6),
+                Expanded(child: Text(widget.direccion, maxLines: 2)),
               ],
             ),
-            secondChild: const SizedBox(height: 8),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.apartment_outlined, size: 18),
+                const SizedBox(width: 6),
+                Text(widget.ciudad),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.flag_outlined),
+                hintText: 'Nombre ubicación (Casa, Oficina...)',
+                filled: true,
+                border: OutlineInputBorder(borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.all(Radius.circular(12))),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.save_outlined),
+                label: const Text('Guardar'),
+                onPressed: () {
+                  final name = _nameCtrl.text.trim();
+                  if (name.isEmpty) return;
+                  widget.onSave(name);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

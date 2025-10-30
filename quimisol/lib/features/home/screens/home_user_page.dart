@@ -1,3 +1,4 @@
+// ... imports existentes
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +9,7 @@ import 'package:quimisol/core/providers/favoritos_provider.dart';
 
 import 'package:quimisol/features/admin/productos/page/productos_public_list.dart';
 import 'package:quimisol/features/public/favoritos/favoritos_page.dart';
-import 'package:quimisol/features/public/pages/carrito_page.dart'; 
+import 'package:quimisol/features/public/pages/carrito_page.dart';
 
 class HomeUserPage extends StatefulWidget {
   const HomeUserPage({super.key});
@@ -29,25 +30,19 @@ class _HomeUserPageState extends State<HomeUserPage> {
       case 2:
         return const FavoritosPage();
       case 3:
-        return const CarritoPage(); 
+        return const CarritoPage();
       default:
         return const Center(child: Text("Página no encontrada"));
     }
   }
 
-  // Logout completo: limpia sesión y favoritos
   Future<void> _onLogout() async {
-    await AuthStorage.clear(); // 1. Limpia SharedPreferences
-
-    // 2. Limpia favoritos del estado global
+    await AuthStorage.clear();
     final favProvider = Provider.of<FavoritosProvider>(context, listen: false);
     favProvider.clear();
-
-    // 3. Redirigir a pantalla guest
     Modular.to.navigate('/home-guest');
   }
 
-  // Mostrar menú de cuenta
   void _showUserDrawer() async {
     final nombre = await AuthStorage.getNombre();
     final correo = await AuthStorage.getCorreo();
@@ -57,31 +52,44 @@ class _HomeUserPageState extends State<HomeUserPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.account_circle, size: 48, color: Palette.primary),
-            const SizedBox(height: 10),
-            Text(
-              nombre ?? "Invitado",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            Text(
-              correo ?? "",
-              style: const TextStyle(color: Colors.black54),
-            ),
-            const Divider(height: 30),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text("Cerrar sesión"),
-              onTap: () {
-                Navigator.pop(context);
-                _onLogout(); // logout completo
-              },
-            ),
-          ],
+      builder: (context) => SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_circle, size: 48, color: Palette.primary),
+              const SizedBox(height: 10),
+              Text(
+                nombre ?? "Invitado",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              Text(
+                correo ?? "",
+                style: const TextStyle(color: Colors.black54),
+              ),
+              const Divider(height: 30),
+              ListTile(
+                leading: const Icon(Icons.location_on_outlined),
+                title: const Text("Ubicaciones"),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  Modular.to.pushNamed('/locations'); // ← Lista
+                },
+              ),
+              const SizedBox(height: 4),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: const Text("Cerrar sesión"),
+                onTap: () {
+                  Navigator.pop(context);
+                  _onLogout();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

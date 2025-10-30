@@ -30,10 +30,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
   // 🔧 API base
   static const String _baseUrl = "http://localhost:3005";
-  late final LocationsService _locationsService =
-      LocationsService(baseUrl: _baseUrl);
-  late final PersonService _personaService =
-      PersonService(baseUrl: _baseUrl); // 👈 corregido
+  late final LocationsService _locationsService = LocationsService(
+    baseUrl: _baseUrl,
+  );
+  late final PersonService _personaService = PersonService(
+    baseUrl: _baseUrl,
+  ); // 👈 corregido
   late final UserService _userService = UserService(baseUrl: _baseUrl);
 
   @override
@@ -152,16 +154,16 @@ class _RegisterPageState extends State<RegisterPage> {
       );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Datos guardados ✅')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Datos guardados ✅')));
       Modular.to.pop(true);
     } catch (e) {
       print("❌ Error actualizando perfil: $e");
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error en servidor: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error en servidor: $e')));
     }
   }
 
@@ -188,9 +190,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
         await _fetchUbicaciones(_idPersona!);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ubicación creada ✅')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Ubicación creada ✅')));
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('No se pudo guardar en servidor: $e')),
@@ -230,10 +232,10 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(u['titulo'] ?? 'Ubicación',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                    )),
+                Text(
+                  u['titulo'] ?? 'Ubicación',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   u['detalle'] ?? '',
@@ -284,14 +286,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           textCapitalization: TextCapitalization.words,
                           decoration: InputDecoration(
                             hintText: 'Nombre completo',
-                            prefixIcon: const Icon(Icons.person_outline,
-                                color: Palette.primary),
+                            prefixIcon: const Icon(
+                              Icons.person_outline,
+                              color: Palette.primary,
+                            ),
                             enabledBorder: _border(missing: _missingNombre),
                             focusedBorder: _border(missing: _missingNombre),
-                            helperText:
-                                _missingNombre ? 'Completa tu nombre' : null,
-                            helperStyle:
-                                const TextStyle(color: Colors.redAccent),
+                            helperText: _missingNombre
+                                ? 'Completa tu nombre'
+                                : null,
+                            helperStyle: const TextStyle(
+                              color: Colors.redAccent,
+                            ),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -303,14 +309,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             hintText: 'Correo',
-                            prefixIcon: const Icon(Icons.email_outlined,
-                                color: Palette.primary),
+                            prefixIcon: const Icon(
+                              Icons.email_outlined,
+                              color: Palette.primary,
+                            ),
                             enabledBorder: _border(missing: _missingCorreo),
                             focusedBorder: _border(missing: _missingCorreo),
-                            helperText:
-                                _missingCorreo ? 'Completa tu correo' : null,
-                            helperStyle:
-                                const TextStyle(color: Colors.redAccent),
+                            helperText: _missingCorreo
+                                ? 'Completa tu correo'
+                                : null,
+                            helperStyle: const TextStyle(
+                              color: Colors.redAccent,
+                            ),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -322,15 +332,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
                             hintText: 'Teléfono',
-                            prefixIcon: const Icon(Icons.phone_outlined,
-                                color: Palette.primary),
+                            prefixIcon: const Icon(
+                              Icons.phone_outlined,
+                              color: Palette.primary,
+                            ),
                             enabledBorder: _border(missing: _missingTelefono),
                             focusedBorder: _border(missing: _missingTelefono),
                             helperText: _missingTelefono
                                 ? 'Completa tu teléfono'
                                 : null,
-                            helperStyle:
-                                const TextStyle(color: Colors.redAccent),
+                            helperStyle: const TextStyle(
+                              color: Colors.redAccent,
+                            ),
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -361,17 +374,17 @@ class _RegisterPageState extends State<RegisterPage> {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.location_on_outlined,
-                                      color: Palette.primary),
+                                  const Icon(
+                                    Icons.location_on_outlined,
+                                    color: Palette.primary,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Ubicaciones',
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                        ?.copyWith(fontWeight: FontWeight.w700),
                                   ),
                                 ],
                               ),
@@ -387,10 +400,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                   ),
                                 ),
                               const SizedBox(height: 12),
-                              ..._ubicaciones
-                                  .asMap()
-                                  .entries
-                                  .map((e) => _ubicacionItem(e.key, e.value)),
+                              ..._ubicaciones.asMap().entries.map(
+                                (e) => _ubicacionItem(e.key, e.value),
+                              ),
                               OutlinedButton.icon(
                                 onPressed: _addUbicacion,
                                 icon: const Icon(
@@ -405,8 +417,9 @@ class _RegisterPageState extends State<RegisterPage> {
                                   ),
                                 ),
                                 style: OutlinedButton.styleFrom(
-                                  side:
-                                      const BorderSide(color: Palette.primary),
+                                  side: const BorderSide(
+                                    color: Palette.primary,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),

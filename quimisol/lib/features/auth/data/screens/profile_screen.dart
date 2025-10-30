@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/theme/palette.dart';
 import '../../../../shared/widgets/gradient_background.dart';
 import '../../../../shared/widgets/rounded_card.dart';
-import '../../../../shared/buttons/app_button.dart'; 
+import '../../../../shared/buttons/app_button.dart';
 import '../widgets/login_header.dart';
 import '../../../../core/storage/auth_storage.dart';
 import '../../../../core/services/postgresql/person/person_service.dart';
@@ -179,18 +179,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ? nombre
                       : (direccion.isEmpty ? '(sin nombre)' : direccion)),
                   style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 if (direccion.isNotEmpty)
-                  Text(direccion,
-                      style: const TextStyle(color: Colors.black87)),
+                  Text(
+                    direccion,
+                    style: const TextStyle(color: Colors.black87),
+                  ),
                 Text(
                   ciudad.isEmpty ? 'Ciudad: (completar)' : 'Ciudad: $ciudad',
                   style: TextStyle(
                     color: ciudad.isEmpty ? Colors.redAccent : Colors.black54,
-                    fontWeight:
-                        ciudad.isEmpty ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: ciudad.isEmpty
+                        ? FontWeight.w600
+                        : FontWeight.w400,
                   ),
                 ),
               ],
@@ -313,9 +318,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           label: "Editar",
                           icon: Icons.edit,
                           onPressed: () {
-                            Modular.to
-                                .pushNamed('/auth/register')
-                                .then((value) {
+                            Modular.to.pushNamed('/auth/register').then((
+                              value,
+                            ) {
                               if (value == true) {
                                 _loadSessionData(); // 🔄 recarga datos
                               }

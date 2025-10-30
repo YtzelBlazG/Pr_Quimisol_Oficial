@@ -69,6 +69,8 @@ const pedidoRouter = require('./modules/pedidos/pedido.router');
 app.use('/auth', authRouter);
 app.use('/personas', personaRouter);
 app.use('/ubicaciones', ubicacionRouter);
+app.use('/ubicacion',  ubicacionRouter);
+
 app.use('/usuarios', usuarioRouter);
 
 // --- Mail

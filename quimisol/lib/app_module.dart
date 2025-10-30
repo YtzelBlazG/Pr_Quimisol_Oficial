@@ -16,7 +16,6 @@ import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_pag
 // import 'package:quimisol/features/admin/presentatios/screens/admin_page.dart';
 // import 'package:quimisol/features/admin/presentatios/screens/admin_dashboard_page.dart';
 
-
 // ====== PAGES PRODUCTOS ======
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
 import 'package:quimisol/features/admin/productos/page/producto_create_page.dart';
@@ -28,7 +27,7 @@ import 'package:quimisol/features/admin/unidades/page/unidad_create_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart';
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
-
+import 'package:quimisol/features/locations/screens/locations_list_page.dart';
 
 // ============================================================
 // ==  SECCIÓN: CLIENTES (Screens base)
@@ -76,7 +75,9 @@ class AppModule extends Module {
     // =========================
     // AUTH
     // =========================
-    i.addSingleton<AuthApi>(() => AuthApi()); // usa DioClient.instance internamente
+    i.addSingleton<AuthApi>(
+      () => AuthApi(),
+    ); // usa DioClient.instance internamente
     i.addSingleton<AuthRepository>(() => AuthRepository(i<AuthApi>()));
     i.addSingleton<AuthController>(() => AuthController(i<AuthRepository>()));
 
@@ -109,10 +110,14 @@ class AppModule extends Module {
     r.child('/', child: (_) => const SplashScreen());
     r.child('/home-guest', child: (_) => const HomeGuestPage());
     r.child('/home-user', child: (_) => const HomeUserPage());
-    r.child('/locations/add', child: (_) => const AddLocationMapPage());
+    r.child(
+      '/locations/add',
+      child: (_) => AddLocationMapPage(baseUrl: Env.apiBaseUrl),
+    );
+    r.child('/locations', child: (_) => const LocationsListPage());
 
     // ====== (NUEVO) CLIENTE: Carrito & Pedidos ======
-    r.child('/carrito', child: (_) => const CarritoPage());   // NEW
+    r.child('/carrito', child: (_) => const CarritoPage()); // NEW
     r.child('/pedidos', child: (_) => const PedidosPage()); // NEW
 
     // Auth
@@ -132,26 +137,44 @@ class AppModule extends Module {
 
     // Admin – Productos
     r.child('/admin/productos', child: (_) => const ProductoListPage());
-    r.child('/admin/productos/create', child: (_) => const ProductoCreatePage());
-    r.child('/admin/productos/edit', child: (_) {
-      final producto = Modular.args.data as Producto;
-      return ProductoEditPage(producto: producto);
-    });
+    r.child(
+      '/admin/productos/create',
+      child: (_) => const ProductoCreatePage(),
+    );
+    r.child(
+      '/admin/productos/edit',
+      child: (_) {
+        final producto = Modular.args.data as Producto;
+        return ProductoEditPage(producto: producto);
+      },
+    );
 
     // Admin – Unidades
     r.child('/admin/unidades', child: (_) => const UnidadListPage());
     r.child('/admin/unidades/create', child: (_) => const UnidadCreatePage());
-    r.child('/admin/unidades/edit', child: (_) {
-      final unidad = Modular.args.data as Unit;
-      return UnidadEditPage(unidad: unidad);
-    });
+    r.child(
+      '/admin/unidades/edit',
+      child: (_) {
+        final unidad = Modular.args.data as Unit;
+        return UnidadEditPage(unidad: unidad);
+      },
+    );
 
     // Admin – Detalle Producto
-    r.child('/admin/detalleproducto', child: (_) => const DetalleProductoListPage());
-    r.child('/admin/detalleproducto/create', child: (_) => const DetalleProductoCreatePage());
-    r.child('/admin/detalleproducto/edit', child: (_) {
-      final detalle = Modular.args.data as DetalleProducto;
-      return DetalleProductoEditPage(detalle: detalle);
-    });
+    r.child(
+      '/admin/detalleproducto',
+      child: (_) => const DetalleProductoListPage(),
+    );
+    r.child(
+      '/admin/detalleproducto/create',
+      child: (_) => const DetalleProductoCreatePage(),
+    );
+    r.child(
+      '/admin/detalleproducto/edit',
+      child: (_) {
+        final detalle = Modular.args.data as DetalleProducto;
+        return DetalleProductoEditPage(detalle: detalle);
+      },
+    );
   }
 }

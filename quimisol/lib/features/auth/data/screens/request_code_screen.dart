@@ -140,7 +140,10 @@ class _RequestCodeScreenState extends State<RequestCodeScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     hintText: 'Correo electrónico',
-                    prefixIcon: Icon(Icons.alternate_email, color: Palette.primary),
+                    prefixIcon: Icon(
+                      Icons.alternate_email,
+                      color: Palette.primary,
+                    ),
                   ),
                   enabled: !_codeEnabled && !_loading,
                 ),
@@ -160,8 +163,11 @@ class _RequestCodeScreenState extends State<RequestCodeScreen> {
                               onPressed: _loading ? null : _sendCode,
                               child: _loading
                                   ? const SizedBox(
-                                      height: 18, width: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     )
                                   : const Text('ENVIAR CÓDIGO'),
                             ),
@@ -180,7 +186,10 @@ class _RequestCodeScreenState extends State<RequestCodeScreen> {
                               decoration: const InputDecoration(
                                 hintText: 'Código de verificación (6 dígitos)',
                                 counterText: '',
-                                prefixIcon: Icon(Icons.pin, color: Palette.primary),
+                                prefixIcon: Icon(
+                                  Icons.pin,
+                                  color: Palette.primary,
+                                ),
                               ),
                               enabled: !_loading,
                             ),
@@ -210,11 +219,16 @@ class _RequestCodeScreenState extends State<RequestCodeScreen> {
                             const SizedBox(height: 4),
 
                             ElevatedButton(
-                              onPressed: (_canContinue && !_loading) ? _continue : null,
+                              onPressed: (_canContinue && !_loading)
+                                  ? _continue
+                                  : null,
                               child: _loading
                                   ? const SizedBox(
-                                      height: 18, width: 18,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
                                     )
                                   : const Text('CONTINUAR'),
                             ),

@@ -1,22 +1,32 @@
 import 'package:flutter/material.dart';
 
 class MapCenterReticle extends StatelessWidget {
-  const MapCenterReticle({super.key, required this.active});
-
-  final bool active;
+  const MapCenterReticle({super.key});
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      ignoring: true,
-      child: Align(
-        alignment: Alignment.center,
-        child: Transform.translate(
-          offset: const Offset(0, -12),
-          child: Icon(
-            Icons.add_location_alt,
-            size: 28,
-            color: active ? Colors.blueAccent : Colors.grey.shade400,
+      child: Center(
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 8,
+                spreadRadius: 1,
+                color: Colors.black.withOpacity(0.25),
+              )
+            ],
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(4),
+            decoration: const BoxDecoration(
+              color: Colors.redAccent,
+              shape: BoxShape.circle,
+            ),
           ),
         ),
       ),
