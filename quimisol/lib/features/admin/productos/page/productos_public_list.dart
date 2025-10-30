@@ -69,7 +69,7 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Productos'),
-        backgroundColor: Palette.primary,
+        backgroundColor: Palette.primary, 
         foregroundColor: Colors.white,
       ),
       body: GridView.builder(

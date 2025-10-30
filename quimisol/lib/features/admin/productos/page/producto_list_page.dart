@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/services/postgresql/productos/producto_service.dart';
 import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
+import 'package:quimisol/core/theme/palette.dart';
 
 class ProductoListPage extends StatefulWidget {
   const ProductoListPage({super.key});
@@ -22,6 +23,13 @@ class _ProductoListPageState extends State<ProductoListPage> {
     _buscarCtrl.addListener(_filtrarProductos);
   }
 
+  @override
+  void dispose() {
+    _buscarCtrl.removeListener(_filtrarProductos);
+    _buscarCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _cargarProductos() async {
     final data = await ProductoService().getProductos();
     setState(() {
@@ -34,9 +42,11 @@ class _ProductoListPageState extends State<ProductoListPage> {
     final texto = _buscarCtrl.text.toLowerCase();
     setState(() {
       productosFiltrados = productos
-          .where((p) =>
-              p.nombre.toLowerCase().contains(texto) ||
-              p.codigo.toLowerCase().contains(texto))
+          .where(
+            (p) =>
+                p.nombre.toLowerCase().contains(texto) ||
+                p.codigo.toLowerCase().contains(texto),
+          )
           .toList();
     });
   }
@@ -81,8 +91,8 @@ class _ProductoListPageState extends State<ProductoListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Productos"),
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
+        backgroundColor: Palette.primary,
+        foregroundColor: Palette.white,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -100,8 +110,8 @@ class _ProductoListPageState extends State<ProductoListPage> {
                     icon: const Icon(Icons.add),
                     label: const Text("Nuevo producto"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                      foregroundColor: Colors.white,
+                      backgroundColor: Palette.primary,
+                      foregroundColor: Palette.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(50),
                       ),
@@ -161,44 +171,63 @@ class _ProductoListPageState extends State<ProductoListPage> {
                             children: [
                               /// Encabezados
                               const TableRow(
-                                decoration:
-                                    BoxDecoration(color: Color(0xFFEAE6F1)),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFEAE6F1),
+                                ),
                                 children: [
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Imagen',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Imagen',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Nombre',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Nombre',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Código',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Código',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Descripción',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Descripción',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Precio (Bs)',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Precio (Bs)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Acciones',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Acciones',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -206,27 +235,31 @@ class _ProductoListPageState extends State<ProductoListPage> {
                               /// Filas de datos
                               ...productosFiltrados.map((producto) {
                                 return TableRow(
-                                  decoration:
-                                      const BoxDecoration(color: Colors.white),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                  ),
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Center(
-                                        child: producto.imagen != null &&
+                                        child:
+                                            producto.imagen != null &&
                                                 producto.imagen!.isNotEmpty
                                             ? CircleAvatar(
                                                 radius: 26,
                                                 backgroundImage: NetworkImage(
-                                                    producto.imagen!),
+                                                  producto.imagen!,
+                                                ),
                                                 onBackgroundImageError:
-                                                    (_, __) =>
-                                                        const Icon(Icons
-                                                            .broken_image),
+                                                    (_, __) => const Icon(
+                                                      Icons.broken_image,
+                                                    ),
                                               )
                                             : const CircleAvatar(
                                                 radius: 26,
                                                 child: Icon(
-                                                    Icons.image_not_supported),
+                                                  Icons.image_not_supported,
+                                                ),
                                               ),
                                       ),
                                     ),
@@ -245,7 +278,8 @@ class _ProductoListPageState extends State<ProductoListPage> {
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
-                                          "${producto.precio.toString()} Bs"),
+                                        "${producto.precio.toString()} Bs",
+                                      ),
                                     ),
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
@@ -254,8 +288,10 @@ class _ProductoListPageState extends State<ProductoListPage> {
                                             MainAxisAlignment.center,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.edit,
-                                                color: Colors.blue),
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Colors.blue,
+                                            ),
                                             tooltip: "Editar",
                                             onPressed: () async {
                                               await Modular.to.pushNamed(
@@ -266,11 +302,15 @@ class _ProductoListPageState extends State<ProductoListPage> {
                                             },
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.delete,
-                                                color: Colors.red),
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
                                             tooltip: "Eliminar",
                                             onPressed: () => _confirmarEliminar(
-                                                context, producto),
+                                              context,
+                                              producto,
+                                            ),
                                           ),
                                         ],
                                       ),

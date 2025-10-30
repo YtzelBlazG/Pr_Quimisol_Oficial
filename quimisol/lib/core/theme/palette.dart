@@ -17,4 +17,10 @@ class Palette {
   // De uso general
   static const Color white = Color(0xFFFFFFFF); // #FFFFFF
   static const Color ink = Color(0xFF4A3B59); // púrpura grisáceo oscuro
+
+  // Colores para estadísticas y gráficos
+  static const Color statsSuccess = Color(0xFF16A34A);  // verde para métricas positivas
+  static const Color statsWarning = Color(0xFFF59E0B);  // naranja para advertencias
+  static const Color statsDanger = Color(0xFFDC2626);   // rojo para alertas
+  static const Color statsNeutral = Color(0xFF0F172A);  // gris oscuro neutral
 }

@@ -13,6 +13,7 @@ import 'package:quimisol/features/auth/data/screens/profile_screen.dart';
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_list_page.dart';
+import 'package:quimisol/features/admin/widgets/top_bar.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -21,27 +22,15 @@ class AdminPage extends StatefulWidget {
   State<AdminPage> createState() => _AdminPageState();
 }
 
-class _AdminPageState extends State<AdminPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
+class _AdminPageState extends State<AdminPage> {
   String? _userName;
   String? _userEmail;
   bool _loadingUser = true;
-
-  final List<Tab> _tabs = const [
-    Tab(icon: Icon(Icons.dashboard), text: "Dashboard"),
-    Tab(icon: Icon(Icons.people), text: "Usuarios"),
-    Tab(icon: Icon(Icons.shopping_bag), text: "Productos"),
-    Tab(icon: Icon(Icons.shopping_bag), text: "Unidades"),
-    Tab(icon: Icon(Icons.shopping_bag), text: "Detalle Productos"),
-    Tab(icon: Icon(Icons.settings), text: "Configuración"),
-  ];
+  String _currentRoute = '/dashboard';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
     _loadUser();
   }
 
@@ -60,7 +49,6 @@ class _AdminPageState extends State<AdminPage>
 
   @override
   void dispose() {
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -69,17 +57,18 @@ class _AdminPageState extends State<AdminPage>
     Modular.to.pushReplacementNamed('/auth/login');
   }
 
-  void _goToTab(int index) {
-    _tabController.index = index;
+  void _handleNavigation(String route) {
+    setState(() {
+      _currentRoute = route;
+    });
     Navigator.of(context).maybePop();
-    setState(() {});
   }
 
   void _openProfile() {
     Navigator.of(context).maybePop();
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
   }
 
   @override
@@ -88,52 +77,13 @@ class _AdminPageState extends State<AdminPage>
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        title: const Text("Panel de Administración"),
-        backgroundColor: Palette.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Cerrar Sesión",
-            onPressed: () => _logout(context),
-          ),
-        ],
-      ),
+      appBar: AdminTopBar(onNavigate: _handleNavigation),
       drawer: _buildDrawer(context),
-      body: Column(
-        children: [
-          Material(
-            color: Theme.of(context).cardColor,
-            child: TabBar(
-              controller: _tabController,
-              tabs: _tabs,
-              labelColor: Palette.primary,
-              indicatorColor: Palette.primary,
-              unselectedLabelColor: Colors.black54,
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                const AdminDashboardPage(),         // index 0
-                const AdminUserPage(),              // index 1
-                const ProductoListPage(),           // index 2
-                const UnidadListPage(),             // index 3
-                const DetalleProductoListPage(),    // index 4
-                _buildConfiguracion(context),       // index 5
-              ],
-            ),
-          ),
-        ],
-      ),
+      body: _buildContent(),
     );
   }
 
   Drawer _buildDrawer(BuildContext context) {
-    final current = _tabController.index;
-
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -167,38 +117,38 @@ class _AdminPageState extends State<AdminPage>
             _DrawerItem(
               icon: Icons.dashboard,
               text: "Dashboard",
-              selected: current == 0,
-              onTap: () => _goToTab(0),
+              selected: _currentRoute == '/dashboard',
+              onTap: () => _handleNavigation('/dashboard'),
             ),
             _DrawerItem(
               icon: Icons.people,
               text: "Usuarios",
-              selected: current == 1,
-              onTap: () => _goToTab(1),
+              selected: _currentRoute == '/usuarios',
+              onTap: () => _handleNavigation('/usuarios'),
             ),
             _DrawerItem(
               icon: Icons.shopping_bag,
               text: "Productos",
-              selected: current == 2,
-              onTap: () => _goToTab(2),
+              selected: _currentRoute == '/productos',
+              onTap: () => _handleNavigation('/productos'),
             ),
             _DrawerItem(
               icon: Icons.shopping_bag,
               text: "Unidades",
-              selected: current == 3,
-              onTap: () => _goToTab(3),
+              selected: _currentRoute == '/unidades',
+              onTap: () => _handleNavigation('/unidades'),
             ),
             _DrawerItem(
               icon: Icons.shopping_bag,
               text: "Detalle Productos",
-              selected: current == 4,
-              onTap: () => _goToTab(4),
+              selected: _currentRoute == '/detalleproducto',
+              onTap: () => _handleNavigation('/detalleproducto'),
             ),
             _DrawerItem(
               icon: Icons.settings,
               text: "Configuración",
-              selected: current == 5,
-              onTap: () => _goToTab(5),
+              selected: _currentRoute == '/configuracion',
+              onTap: () => _handleNavigation('/configuracion'),
             ),
             const Divider(),
             _DrawerItem(
@@ -227,16 +177,31 @@ class _AdminPageState extends State<AdminPage>
     );
   }
 
-  Widget _buildConfiguracion(BuildContext context) {
-    return Center(
-      child: Text(
-        "⚙️ Configuración del Sistema",
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+  Widget _buildContent() {
+    switch (_currentRoute) {
+      case '/dashboard':
+        return const AdminDashboardPage();
+      case '/usuarios':
+        return const AdminUserPage();
+      case '/productos':
+        return const ProductoListPage();
+      case '/unidades':
+        return const UnidadListPage();
+      case '/detalleproducto':
+        return const DetalleProductoListPage();
+      case '/configuracion':
+        return Center(
+          child: Text(
+            "⚙️ Configuración del Sistema",
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: Colors.black87,
               fontWeight: FontWeight.w600,
             ),
-      ),
-    );
+          ),
+        );
+      default:
+        return const AdminDashboardPage();
+    }
   }
 }
 

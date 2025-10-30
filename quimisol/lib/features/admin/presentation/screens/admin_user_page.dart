@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/core/services/postgresql/user_admin/user_admin_service.dart';
 import 'package:quimisol/features/admin/presentation/widgets/users/user_glass_title.dart';
-import 'package:quimisol/shared/widgets/gradient_background.dart';
 
 import 'package:quimisol/features/admin/presentation/utils/users_filtering.dart';
 import 'package:quimisol/features/admin/presentation/widgets/common/skeleton_list.dart';
@@ -81,18 +81,17 @@ class _AdminUserPageState extends State<AdminUserPage> {
 
   @override
   Widget build(BuildContext context) {
-    return GradientBackground(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
+    return Scaffold(
+        backgroundColor: Palette.white,
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
           title: const Text('Gestión de usuarios'),
-          foregroundColor: Colors.white,
+          foregroundColor: Palette.primary,
         ),
         body: RefreshIndicator(
           onRefresh: _load,
-          color: Colors.white,
+          color: Palette.white,
           child: _loading
               ? const SkeletonList()
               : _error != null
@@ -135,7 +134,6 @@ class _AdminUserPageState extends State<AdminUserPage> {
                       ],
                     ),
         ),
-      ),
-    );
+      );
   }
 }

@@ -1,14 +1,15 @@
-// lib/features/admin/detalleproducto/page/detalleproducto_list_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/services/postgresql/detalleproducto/detalleproducto_service.dart';
 import 'package:quimisol/features/admin/detalleproducto/data/models/detalleproducto_model.dart';
+import 'package:quimisol/core/theme/palette.dart';
 
 class DetalleProductoListPage extends StatefulWidget {
   const DetalleProductoListPage({super.key});
 
   @override
-  State<DetalleProductoListPage> createState() => _DetalleProductoListPageState();
+  State<DetalleProductoListPage> createState() =>
+      _DetalleProductoListPageState();
 }
 
 class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
@@ -35,9 +36,11 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
     final texto = _buscarCtrl.text.toLowerCase();
     setState(() {
       detallesFiltrados = detalles
-          .where((d) =>
-              d.atributo.toLowerCase().contains(texto) ||
-              d.valor.toLowerCase().contains(texto))
+          .where(
+            (d) =>
+                d.atributo.toLowerCase().contains(texto) ||
+                d.valor.toLowerCase().contains(texto),
+          )
           .toList();
     });
   }
@@ -82,8 +85,8 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Detalles de Producto"),
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
+        backgroundColor: Palette.primary,
+        foregroundColor: Palette.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -99,14 +102,16 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
                     icon: const Icon(Icons.add),
                     label: const Text("Nuevo detalle"),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                      foregroundColor: Colors.white,
+                      backgroundColor: Palette.primary,
+                      foregroundColor: Palette.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(50),
                       ),
                     ),
                     onPressed: () async {
-                      await Modular.to.pushNamed('/admin/detalleproducto/create');
+                      await Modular.to.pushNamed(
+                        '/admin/detalleproducto/create',
+                      );
                       await _cargarDetalles();
                     },
                   ),
@@ -126,7 +131,9 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
                 detallesFiltrados.isEmpty
                     ? const Center(child: Text('No hay detalles para mostrar.'))
                     : Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         elevation: 4,
                         child: Padding(
                           padding: const EdgeInsets.all(24),
@@ -142,29 +149,53 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
                             ),
                             children: [
                               const TableRow(
-                                decoration: BoxDecoration(color: Color(0xFFEAE6F1)),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFEAE6F1),
+                                ),
                                 children: [
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Atributo', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Atributo',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Valor', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Valor',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Cantidad', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Cantidad',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: EdgeInsets.all(8.0),
-                                    child: Text('Acciones', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    child: Text(
+                                      'Acciones',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                               ...detallesFiltrados.map((detalle) {
                                 return TableRow(
-                                  decoration: const BoxDecoration(color: Colors.white),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                  ),
                                   children: [
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
@@ -181,10 +212,14 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           IconButton(
-                                            icon: const Icon(Icons.edit, color: Colors.blue),
+                                            icon: const Icon(
+                                              Icons.edit,
+                                              color: Colors.blue,
+                                            ),
                                             onPressed: () async {
                                               await Modular.to.pushNamed(
                                                 '/admin/detalleproducto/edit',
@@ -194,8 +229,14 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
                                             },
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.red),
-                                            onPressed: () => _confirmarEliminar(context, detalle),
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () => _confirmarEliminar(
+                                              context,
+                                              detalle,
+                                            ),
                                           ),
                                         ],
                                       ),
