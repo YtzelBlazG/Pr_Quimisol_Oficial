@@ -14,15 +14,15 @@ class AdminTopBar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _AdminTopBarState extends State<AdminTopBar> {
-  
-  // Menú principal
   final Map<String, dynamic> _menuItems = {
-    "Dashboard": {
-      "route": "/dashboard", "items": [],
-    },
+    "Dashboard": {"route": "/dashboard", "items": []},
     "Usuarios": {
       "items": [
-        {"label": "Lista de Usuarios", "icon": Icons.people, "route": "/usuarios"},
+        {
+          "label": "Lista de Usuarios",
+          "icon": Icons.people,
+          "route": "/usuarios",
+        },
         {
           "label": "Roles y Permisos",
           "icon": Icons.admin_panel_settings,
@@ -32,7 +32,11 @@ class _AdminTopBarState extends State<AdminTopBar> {
     },
     "Productos": {
       "items": [
-        {"label": "Productos", "icon": Icons.shopping_bag, "route": "/productos"},
+        {
+          "label": "Productos",
+          "icon": Icons.shopping_bag,
+          "route": "/productos",
+        },
         {"label": "Unidades", "icon": Icons.grid_view, "route": "/unidades"},
         {
           "label": "Detalle Productos",
@@ -42,12 +46,9 @@ class _AdminTopBarState extends State<AdminTopBar> {
         {"label": "Pedidos", "icon": Icons.receipt_long, "route": "/pedidos"},
       ],
     },
-    "Configuración": {
-      "items": [],
-    },
+    "Configuración": {"items": []},
   };
 
-  // Menú del usuario (perfil)
   final Map<String, dynamic> _userMenu = {
     "items": [
       {"label": "Mi Perfil", "icon": Icons.person_outline, "route": "/perfil"},
@@ -58,7 +59,6 @@ class _AdminTopBarState extends State<AdminTopBar> {
   String? _hoveredMenu;
   OverlayEntry? _dropdownOverlay;
 
-  // Mostrar submenú bajo el botón exacto
   void _showDropdown(
     BuildContext context,
     String key,
@@ -66,7 +66,6 @@ class _AdminTopBarState extends State<AdminTopBar> {
     List<Map<String, dynamic>> items,
   ) {
     _removeDropdown();
-
     if (items.isEmpty) return;
 
     final RenderBox? renderBox =
@@ -83,12 +82,11 @@ class _AdminTopBarState extends State<AdminTopBar> {
             child: GestureDetector(
               onTap: _removeDropdown,
               behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.transparent),
             ),
           ),
           Positioned(
             left: position.dx,
-            top: position.dy + size.height,
+            top: position.dy + size.height + 4,
             child: _AnimatedDropdown(
               items: items,
               onSelect: (route) {
@@ -100,7 +98,6 @@ class _AdminTopBarState extends State<AdminTopBar> {
         ],
       ),
     );
-
     Overlay.of(context).insert(_dropdownOverlay!);
   }
 
@@ -109,7 +106,6 @@ class _AdminTopBarState extends State<AdminTopBar> {
     _dropdownOverlay = null;
   }
 
-  // Menú usuario (abre al hacer clic)
   void _showUserMenu(BuildContext context) {
     _removeDropdown();
     final items = _userMenu['items'] as List<Map<String, dynamic>>;
@@ -121,12 +117,11 @@ class _AdminTopBarState extends State<AdminTopBar> {
             child: GestureDetector(
               onTap: _removeDropdown,
               behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.transparent),
             ),
           ),
           Positioned(
             right: 16,
-            top: kToolbarHeight + 8,
+            top: 68,
             child: _AnimatedDropdown(
               items: items,
               onSelect: (route) {
@@ -141,91 +136,144 @@ class _AdminTopBarState extends State<AdminTopBar> {
     Overlay.of(context).insert(_dropdownOverlay!);
   }
 
-  // Build principal
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: Palette.primary,
-      elevation: 2,
-      titleSpacing: 0,
-      automaticallyImplyLeading: false,
-      title: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Row(
-          children: [
-            const Icon(Icons.science, color: Colors.white),
-            const SizedBox(width: 10),
-            const Text(
-              "Quimisol Admin",
-              style: TextStyle(
-                color: Palette.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+    return Container(
+      height: 60,
+      color: Palette.primary,
+      child: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        titleSpacing: 0,
+        automaticallyImplyLeading: false,
+        title: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              // Logo + Texto
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Palette.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.science,
+                      color: Palette.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    "Quimisol Admin",
+                    style: TextStyle(
+                      color: Palette.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const Spacer(),
-            ..._menuItems.keys.map((key) {
-              final GlobalKey itemKey = GlobalKey();
-              final hasSubmenu =
-                  (_menuItems[key]!['items'] as List).isNotEmpty;
-              final route = _menuItems[key]!['route'];
+              const Spacer(),
 
-              return MouseRegion(
-                key: itemKey,
-                onEnter: (_) {
-                  if (hasSubmenu) {
-                    _showDropdown(
-                      context,
-                      key,
-                      itemKey,
-                      _menuItems[key]!['items'],
-                    );
-                    setState(() => _hoveredMenu = key);
-                  }
-                },
-                onExit: (_) {
-                  if (hasSubmenu) {
-                    Future.delayed(const Duration(milliseconds: 180), () {
-                      if (!mounted) return;
-                      _removeDropdown();
-                      setState(() => _hoveredMenu = null);
-                    });
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TextButton(
-                    onPressed: () {
-                      // Dashboard u otros sin submenú → navegan directo
-                      if (!hasSubmenu && route != null) {
-                        widget.onNavigate?.call(route);
-                      }
-                    },
-                    child: Text(
-                      key,
-                      style: TextStyle(
-                        color: _hoveredMenu == key
-                            ? Palette.button
-                            : Palette.white,
-                        fontWeight: FontWeight.w600,
+              // Menú principal
+              ..._menuItems.keys.map((key) {
+                final GlobalKey itemKey = GlobalKey();
+                final hasSubmenu =
+                    (_menuItems[key]!['items'] as List).isNotEmpty;
+                final route = _menuItems[key]!['route'];
+
+                return MouseRegion(
+                  key: itemKey,
+                  onEnter: (_) {
+                    if (hasSubmenu) {
+                      _showDropdown(
+                        context,
+                        key,
+                        itemKey,
+                        _menuItems[key]!['items'],
+                      );
+                      setState(() => _hoveredMenu = key);
+                    }
+                  },
+                  onExit: (_) {
+                    if (hasSubmenu) {
+                      Future.delayed(const Duration(milliseconds: 200), () {
+                        if (mounted && _hoveredMenu == key) {
+                          setState(() => _hoveredMenu = null);
+                        }
+                      });
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    child: TextButton(
+                      onPressed: () {
+                        if (!hasSubmenu && route != null) {
+                          widget.onNavigate?.call(route);
+                        }
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 18,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        backgroundColor: _hoveredMenu == key
+                            ? Palette.secButton
+                            : Colors.transparent,
+                      ),
+                      child: Text(
+                        key,
+                        style: TextStyle(
+                          color: _hoveredMenu == key
+                              ? Palette.white
+                              : Palette.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }),
-            const Spacer(),
-            IconButton(
-              icon: const Icon(Icons.search, color: Colors.white),
-              onPressed: () {
-                // falta la búsqueda xd
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.person, color: Colors.white),
-              onPressed: () => _showUserMenu(context),
-            ),
-          ],
+                );
+              }).toList(),
+              const Spacer(),
+
+              // Íconos derecha
+              Row(
+                children: [
+                  _iconButton(Icons.search),
+                  const SizedBox(width: 8),
+                  _iconButton(
+                    Icons.person,
+                    onTap: () => _showUserMenu(context),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _iconButton(IconData icon, {VoidCallback? onTap}) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: Palette.white, size: 22),
         ),
       ),
     );
@@ -256,10 +304,9 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
       vsync: this,
       duration: const Duration(milliseconds: 180),
     )..forward();
-
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _slide = Tween<Offset>(
-      begin: const Offset(0, -0.05),
+      begin: const Offset(0, -0.1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
@@ -277,25 +324,20 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
       child: SlideTransition(
         position: _slide,
         child: Material(
-          color: Colors.transparent,
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          shadowColor: Colors.black.withOpacity(0.1),
           child: Container(
-            width: 220,
-            margin: const EdgeInsets.only(top: 2),
+            width: 240,
             decoration: BoxDecoration(
               color: Palette.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12.withOpacity(0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Palette.fieldBg, width: 1),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: widget.items.map((item) {
                 return InkWell(
+                  borderRadius: BorderRadius.circular(10),
                   onTap: () => widget.onSelect(item['route']),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -304,12 +346,23 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
                     ),
                     child: Row(
                       children: [
-                        Icon(item['icon'], color: Palette.primary, size: 20),
-                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Palette.card,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(
+                            item['icon'],
+                            color: Palette.primary,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         Text(
                           item['label'],
                           style: const TextStyle(
-                            color: Palette.ink,
+                            color: Palette.primary,
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                           ),

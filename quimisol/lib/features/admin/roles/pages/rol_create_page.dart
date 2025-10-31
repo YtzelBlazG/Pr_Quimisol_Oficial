@@ -1,19 +1,14 @@
-// lib/features/admin/unidades/presentation/pages/unidad_edit_page.dart
+// lib/features/admin/roles/presentation/pages/rol_create_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/theme/palette.dart';
-import 'package:quimisol/features/admin/unidades/data/models/unidad_model.dart';
-import '../controllers/unidad_controller.dart';
-import '../widgets/unidad_formulario.dart';
+import '../widgets/role_form.dart';
 
-class UnidadEditPage extends StatelessWidget {
-  final Unit unidad;
-
-  const UnidadEditPage({super.key, required this.unidad});
+class RolCreatePage extends StatelessWidget {
+  const RolCreatePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final controlador = Modular.get<UnidadController>();
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 600;
     final cardWidth = isMobile ? screenWidth * 0.9 : 900.0;
@@ -29,7 +24,7 @@ class UnidadEditPage extends StatelessWidget {
           onPressed: () => Modular.to.pop(),
         ),
         title: const Text(
-          "Editar Unidad",
+          "Crear Rol",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
@@ -71,11 +66,11 @@ class UnidadEditPage extends StatelessWidget {
                               color: Palette.primary.withOpacity(0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.edit, size: 40, color: Palette.primary),
+                            child: const Icon(Icons.shield, size: 40, color: Palette.primary),
                           ),
                           const SizedBox(height: 18),
                           const Text(
-                            'Editar unidad',
+                            'Nuevo rol',
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -84,7 +79,7 @@ class UnidadEditPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Modifica los datos de la unidad',
+                            'Define un nuevo rol para el sistema',
                             style: TextStyle(
                               fontSize: 15,
                               color: Palette.primary.withOpacity(0.75),
@@ -97,24 +92,8 @@ class UnidadEditPage extends StatelessWidget {
 
                     const SizedBox(height: 36),
 
-                    UnidadFormulario(
-                      unidad: unidad,
-                      onSubmit: (nuevaUnidad) async {
-                        await controlador.editarUnidad(unidad.id, nuevaUnidad);
-
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Unidad actualizada exitosamente'),
-                            backgroundColor: Palette.statsSuccess,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
-                        Modular.to.pop();
-                      },
-                    ),
+                    // FORMULARIO
+                    const RolFormulario(),
                   ],
                 ),
               ),

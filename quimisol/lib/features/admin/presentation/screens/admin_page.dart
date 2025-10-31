@@ -5,9 +5,9 @@ import 'package:quimisol/core/storage/auth_storage.dart';
 
 // Pantallas
 import 'package:quimisol/features/admin/presentation/screens/admin_user_page.dart';
-import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_page.dart'
-    hide Palette;
+import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_page.dart';
 import 'package:quimisol/features/auth/data/screens/profile_screen.dart';
+import 'package:quimisol/features/admin/roles/pages/rol_create_page.dart';
 
 // CRUD: Productos, Unidades, DetalleProducto
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
@@ -58,6 +58,17 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   void _handleNavigation(String route) {
+    // Rutas especiales que requieren acciones (no solo cambiar la vista)
+    if (route == '/logout') {
+      _logout(context);
+      return;
+    }
+    if (route == '/perfil') {
+      _openProfile();
+      return;
+    }
+
+    // Rutas normales: cambiar la vista en el contenido principal
     setState(() {
       _currentRoute = route;
     });
@@ -183,6 +194,9 @@ class _AdminPageState extends State<AdminPage> {
         return const AdminDashboardPage();
       case '/usuarios':
         return const AdminUserPage();
+      // Por ahora directo a crear rol
+      case '/usuarios/roles':
+        return const RolCreatePage();
       case '/productos':
         return const ProductoListPage();
       case '/unidades':
