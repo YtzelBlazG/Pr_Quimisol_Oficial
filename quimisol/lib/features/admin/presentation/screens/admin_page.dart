@@ -3,16 +3,19 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/core/storage/auth_storage.dart';
 
-// Pantallas
+// Pantallas principales
 import 'package:quimisol/features/admin/presentation/screens/admin_user_page.dart';
 import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_page.dart';
 import 'package:quimisol/features/auth/data/screens/profile_screen.dart';
 import 'package:quimisol/features/admin/roles/pages/rol_create_page.dart';
 
-// CRUD: Productos, Unidades, DetalleProducto
+// CRUDs
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_list_page.dart';
+import 'package:quimisol/features/admin/categorias/page/categoria_list_page.dart';
+
+// TopBar
 import 'package:quimisol/features/admin/widgets/top_bar.dart';
 
 class AdminPage extends StatefulWidget {
@@ -40,16 +43,10 @@ class _AdminPageState extends State<AdminPage> {
     if (!mounted) return;
     setState(() {
       _userName = (name ?? '').trim().isEmpty ? 'Usuario' : name!.trim();
-      _userEmail = (email ?? '').trim().isEmpty
-          ? 'sin_correo@ejemplo.com'
-          : email!.trim();
+      _userEmail =
+          (email ?? '').trim().isEmpty ? 'sin_correo@ejemplo.com' : email!.trim();
       _loadingUser = false;
     });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -58,7 +55,6 @@ class _AdminPageState extends State<AdminPage> {
   }
 
   void _handleNavigation(String route) {
-    // Rutas especiales que requieren acciones (no solo cambiar la vista)
     if (route == '/logout') {
       _logout(context);
       return;
@@ -68,18 +64,15 @@ class _AdminPageState extends State<AdminPage> {
       return;
     }
 
-    // Rutas normales: cambiar la vista en el contenido principal
-    setState(() {
-      _currentRoute = route;
-    });
+    setState(() => _currentRoute = route);
     Navigator.of(context).maybePop();
   }
 
   void _openProfile() {
     Navigator.of(context).maybePop();
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+    );
   }
 
   @override
@@ -125,6 +118,8 @@ class _AdminPageState extends State<AdminPage> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+
+            // === Navegación principal ===
             _DrawerItem(
               icon: Icons.dashboard,
               text: "Dashboard",
@@ -144,13 +139,19 @@ class _AdminPageState extends State<AdminPage> {
               onTap: () => _handleNavigation('/productos'),
             ),
             _DrawerItem(
-              icon: Icons.shopping_bag,
+              icon: Icons.category,
+              text: "Categorías",
+              selected: _currentRoute == '/categorias',
+              onTap: () => _handleNavigation('/categorias'),
+            ),
+            _DrawerItem(
+              icon: Icons.grid_view,
               text: "Unidades",
               selected: _currentRoute == '/unidades',
               onTap: () => _handleNavigation('/unidades'),
             ),
             _DrawerItem(
-              icon: Icons.shopping_bag,
+              icon: Icons.list_alt,
               text: "Detalle Productos",
               selected: _currentRoute == '/detalleproducto',
               onTap: () => _handleNavigation('/detalleproducto'),
@@ -161,6 +162,7 @@ class _AdminPageState extends State<AdminPage> {
               selected: _currentRoute == '/configuracion',
               onTap: () => _handleNavigation('/configuracion'),
             ),
+
             const Divider(),
             _DrawerItem(
               icon: Icons.person_outline,
@@ -194,11 +196,12 @@ class _AdminPageState extends State<AdminPage> {
         return const AdminDashboardPage();
       case '/usuarios':
         return const AdminUserPage();
-      // Por ahora directo a crear rol
       case '/usuarios/roles':
         return const RolCreatePage();
       case '/productos':
         return const ProductoListPage();
+      case '/categorias':
+        return const CategoriaListPage();
       case '/unidades':
         return const UnidadListPage();
       case '/detalleproducto':
@@ -208,9 +211,9 @@ class _AdminPageState extends State<AdminPage> {
           child: Text(
             "⚙️ Configuración del Sistema",
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
-            ),
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
           ),
         );
       default:

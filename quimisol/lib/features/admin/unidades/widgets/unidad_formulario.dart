@@ -1,4 +1,3 @@
-// lib/features/admin/unidades/presentation/widgets/unidad_formulario.dart
 import 'package:flutter/material.dart';
 import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/features/admin/unidades/data/models/unidad_model.dart';
@@ -48,6 +47,7 @@ class _UnidadFormularioState extends State<UnidadFormulario> {
     return Form(
       key: _formKey,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildField(nombreCtrl, 'Nombre', Icons.label, validator: (v) => v?.isEmpty ?? true ? 'Requerido' : null),
           const SizedBox(height: 18),

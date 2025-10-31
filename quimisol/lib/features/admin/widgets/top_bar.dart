@@ -32,18 +32,10 @@ class _AdminTopBarState extends State<AdminTopBar> {
     },
     "Productos": {
       "items": [
-        {
-          "label": "Productos",
-          "icon": Icons.shopping_bag,
-          "route": "/productos",
-        },
+        {"label": "Productos", "icon": Icons.shopping_bag, "route": "/productos"},
+        {"label": "Categorías", "icon": Icons.category, "route": "/categorias"},
         {"label": "Unidades", "icon": Icons.grid_view, "route": "/unidades"},
-        {
-          "label": "Detalle Productos",
-          "icon": Icons.list_alt,
-          "route": "/detalleproducto",
-        },
-        {"label": "Pedidos", "icon": Icons.receipt_long, "route": "/pedidos"},
+        {"label": "Detalle Productos", "icon": Icons.list_alt, "route": "/detalleproducto"},
       ],
     },
     "Configuración": {"items": []},
@@ -68,8 +60,7 @@ class _AdminTopBarState extends State<AdminTopBar> {
     _removeDropdown();
     if (items.isEmpty) return;
 
-    final RenderBox? renderBox =
-        menuKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? renderBox = menuKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
 
     final Offset position = renderBox.localToGlobal(Offset.zero);
@@ -159,16 +150,12 @@ class _AdminTopBarState extends State<AdminTopBar> {
                       color: Palette.white,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
-                      Icons.science,
-                      color: Palette.primary,
-                      size: 20,
-                    ),
+                    child: const Icon(Icons.science, color: Palette.primary, size: 20),
                   ),
                   const SizedBox(width: 10),
                   Text(
                     "Quimisol Admin",
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Palette.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -181,20 +168,14 @@ class _AdminTopBarState extends State<AdminTopBar> {
               // Menú principal
               ..._menuItems.keys.map((key) {
                 final GlobalKey itemKey = GlobalKey();
-                final hasSubmenu =
-                    (_menuItems[key]!['items'] as List).isNotEmpty;
+                final hasSubmenu = (_menuItems[key]!['items'] as List).isNotEmpty;
                 final route = _menuItems[key]!['route'];
 
                 return MouseRegion(
                   key: itemKey,
                   onEnter: (_) {
                     if (hasSubmenu) {
-                      _showDropdown(
-                        context,
-                        key,
-                        itemKey,
-                        _menuItems[key]!['items'],
-                      );
+                      _showDropdown(context, key, itemKey, _menuItems[key]!['items']);
                       setState(() => _hoveredMenu = key);
                     }
                   },
@@ -216,23 +197,15 @@ class _AdminTopBarState extends State<AdminTopBar> {
                         }
                       },
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 18,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        backgroundColor: _hoveredMenu == key
-                            ? Palette.secButton
-                            : Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        backgroundColor:
+                            _hoveredMenu == key ? Palette.secButton : Colors.transparent,
                       ),
                       child: Text(
                         key,
                         style: TextStyle(
-                          color: _hoveredMenu == key
-                              ? Palette.white
-                              : Palette.white,
+                          color: Palette.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
@@ -300,15 +273,11 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 180),
-    )..forward();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 180))
+      ..forward();
     _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slide = Tween<Offset>(
-      begin: const Offset(0, -0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _slide =
+        Tween<Offset>(begin: const Offset(0, -0.1), end: Offset.zero).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
 
   @override
@@ -340,10 +309,7 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
                   borderRadius: BorderRadius.circular(10),
                   onTap: () => widget.onSelect(item['route']),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
                         Container(
@@ -352,11 +318,7 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
                             color: Palette.card,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Icon(
-                            item['icon'],
-                            color: Palette.primary,
-                            size: 18,
-                          ),
+                          child: Icon(item['icon'], color: Palette.primary, size: 18),
                         ),
                         const SizedBox(width: 12),
                         Text(

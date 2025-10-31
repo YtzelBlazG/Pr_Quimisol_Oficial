@@ -1,7 +1,12 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import '../../../core/theme/palette.dart';
+import 'package:quimisol/core/services/postgresql/productos/producto_service.dart';
+import 'package:quimisol/core/storage/auth_storage.dart';
+import 'package:quimisol/core/theme/palette.dart';
+import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
+import 'package:quimisol/features/admin/widgets/BeneficioItem.dart';
+import 'package:quimisol/features/admin/widgets/categoryitem.dart';
 
 class HomeGuestPage extends StatefulWidget {
   const HomeGuestPage({super.key});
@@ -11,132 +16,254 @@ class HomeGuestPage extends StatefulWidget {
 }
 
 class _HomeGuestPageState extends State<HomeGuestPage> {
-  final _carousel = CarouselSliderController();
-  int _current = 0;
+  List<Producto> productos = [];
 
-  // URLs ejemplo oficial
-  final List<String> _imgList = const [
-    'https://images.unsplash.com/photo-1649073005971-37babef31983?auto=format&fit=crop&fm=jpg&w=1400&q=70',
-    'https://images.unsplash.com/photo-1624392294437-8fc9f876f4d3?auto=format&fit=crop&fm=jpg&w=1400&q=70',
-    'https://plus.unsplash.com/premium_photo-1677011779114-5af7e8c06ee1?auto=format&fit=crop&fm=jpg&w=1400&q=70',
-    'https://plus.unsplash.com/premium_photo-1678282075115-de1836c1393d?auto=format&fit=crop&fm=jpg&w=1400&q=70',
-    'https://images.unsplash.com/photo-1740325952752-fcedd5644a27?auto=format&fit=crop&fm=jpg&w=1400&q=70',
-  ];
+  // ✅ ScrollController agregado para el Scrollbar
+  final ScrollController _scrollController = ScrollController();
 
-  // Helper para inyectar parámetros responsivos
-  String _buildResponsiveUrl(String base, double logicalWidth, double dpr) {
-    // factorCalidad 1.5 da buen balance (retina-ish sin pesar tanto)
-    final targetWidth = (logicalWidth * dpr * 1.5).clamp(800, 2200).round();
-    // añadir 'h=' para forzar altura, ej. hero 9:16 -> h=(targetWidth*16/9).round()
-    final uri = Uri.parse(base);
-    final qp = Map<String, String>.from(uri.queryParameters)
-      ..addAll({'fm': 'jpg', 'q': '70', 'w': '$targetWidth'});
-    return uri.replace(queryParameters: qp).toString();
+  @override
+  void initState() {
+    super.initState();
+    _cargarProductos();
+  }
+
+  Future<void> _cargarProductos() async {
+    final data = await ProductoService().getProductos();
+    setState(() {
+      productos = data;
+    });
+  }
+
+  Future<void> _verificarSesionOLogin(VoidCallback accion) async {
+    final logueado = await AuthStorage.isLoggedIn();
+    if (!logueado) {
+      Modular.to.pushNamed('/auth/login');
+    } else {
+      accion();
+    }
+  }
+
+  // ✅ liberar el controlador
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final dpr = MediaQuery.of(context).devicePixelRatio;
+
     // Genera las URLs optimizadas para ESTE dispositivo
-    final responsiveUrls = _imgList
+    /*final responsiveUrls = _imgList
         .map((u) => _buildResponsiveUrl(u, size.width, dpr))
-        .toList();
+        .toList();*/
 
     return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Palette.gradientStart, Palette.gradientEnd],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-          ),
-          CarouselSlider(
-            carouselController: _carousel,
-            items: responsiveUrls.map((url) {
-              return Image.network(
-                url,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                // Además ayuda a Flutter a cachear/redimensionar en cliente
-                cacheWidth: (size.width * dpr).round(),
-                loadingBuilder: (c, w, p) => p == null
-                    ? w
-                    : const Center(child: CircularProgressIndicator()),
-                errorBuilder: (_, __, ___) =>
-                    const Center(child: Icon(Icons.broken_image, size: 48)),
-                filterQuality: FilterQuality.medium,
-              );
-            }).toList(),
-            options: CarouselOptions(
-              height: double.infinity,
-              viewportFraction: 1.0,
-              enlargeCenterPage: false,
-              enableInfiniteScroll: true,
-              autoPlay: true,
-              autoPlayInterval: const Duration(seconds: 5),
-              autoPlayAnimationDuration: const Duration(milliseconds: 600),
-              onPageChanged: (index, _) => setState(() => _current = index),
-            ),
-          ),
-          // Overlay + CTA...
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-              child: Column(
-                children: [
-                  const Spacer(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(responsiveUrls.length, (i) {
-                      final active = i == _current;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 6),
-                        height: 8,
-                        width: active ? 20 : 8,
-                        decoration: BoxDecoration(
-                          color: active
-                              ? Colors.white
-                              : Colors.white.withOpacity(.35),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Palette.secButton,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 3,
-                      ),
-                      onPressed: () => Modular.to.navigate('/auth/login'),
-                      child: const Text(
-                        'COMENZAR',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      backgroundColor: const Color(0xFFF3E6FA),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF3E6FA),
+        elevation: 0,
+        centerTitle: true,
+        title: Image.asset(
+          'assets/images/logo-quimisol.png',
+          height: 60,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Colors.purple),
+            onPressed: () => _verificarSesionOLogin(() {}),
           ),
         ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: Palette.primary,
+        unselectedItemColor: Colors.grey,
+        currentIndex: 0,
+        onTap: (index) => _verificarSesionOLogin(() {}),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favoritos'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Carrito'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🟣 Hero Section
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset(
+                        'assets/images/inicio.png',
+                        width: double.infinity,
+                        height: 300,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Soluciones industriales para tu negocio',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          width: 200,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Palette.button,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(40),
+                              ),
+                            ),
+                            onPressed: () => _verificarSesionOLogin(() {
+                              Modular.to.pushNamed('/productos');
+                            }),
+                            child: const Text('Ver productos'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 🟣 Beneficios
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: const [
+                  BeneficioItem(icon: Icons.local_shipping, label: 'Envío rápido'),
+                  BeneficioItem(icon: Icons.science, label: 'Alta calidad'),
+                  BeneficioItem(icon: Icons.headset_mic, label: 'Soporte'),
+                  BeneficioItem(icon: Icons.store, label: 'Industria local'),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // 🟣 Categorías
+              const Text(
+                'Categorías',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  CategoriaItem(icon: Icons.cleaning_services, label: 'Limpieza'),
+                  CategoriaItem(icon: Icons.bubble_chart, label: 'Detergentes'),
+                  CategoriaItem(icon: Icons.inventory, label: 'Insumos'),
+                  CategoriaItem(icon: Icons.medical_services, label: 'Desinfectantes'),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // 🟣 Productos destacados
+              const Text(
+                'Productos destacados',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 280,
+                child: Scrollbar(
+                  controller: _scrollController, // ✅ agregado
+                  thumbVisibility: true,
+                  child: ListView.builder(
+                    controller: _scrollController, // ✅ agregado
+                    scrollDirection: Axis.horizontal,
+                    itemCount: productos.length,
+                    itemBuilder: (context, index) {
+                      final p = productos[index];
+                      return GestureDetector(
+                        onTap: () => _verificarSesionOLogin(() {}),
+                        child: Container(
+                          width: 180,
+                          margin: const EdgeInsets.only(right: 16),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              )
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Image.network(
+                                p.imagen ?? '',
+                                height: 120,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                p.nombre,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Bs ${p.precio}',
+                                style: const TextStyle(color: Palette.primary),
+                              ),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () => _verificarSesionOLogin(() {}),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Palette.button,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                                ),
+                                child: const Text('Ver'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
+
+

@@ -7,6 +7,7 @@ import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_lis
 // ====== MODELOS (para pasar objetos vía args en rutas /edit) ======
 import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
 import 'package:quimisol/features/admin/unidades/data/models/unidad_model.dart';
+import 'package:quimisol/features/admin/categorias/data/categoria_model.dart';
 
 // ====== PÁGINAS ADMIN (del proyecto integrado) ======
 // Usa el path correcto según tu repo:
@@ -25,10 +26,14 @@ import 'package:quimisol/features/admin/productos/page/producto_edit_page.dart';
 // ====== PAGES UNIDADES ======
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_create_page.dart';
-import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart';
+import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart' ;
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
 
+// ====== PAGES CATEGORIAS ======
+import 'package:quimisol/features/admin/categorias/page/categoria_create_page.dart';
+import 'package:quimisol/features/admin/categorias/page/categoria_edit_page.dart';
+import 'package:quimisol/features/admin/categorias/page/categoria_list_page.dart';
 
 // ============================================================
 // ==  SECCIÓN: CLIENTES (Screens base)
@@ -62,6 +67,14 @@ import 'package:quimisol/features/admin/productos/controllers/producto_controlle
 
 import 'package:quimisol/core/services/postgresql/user_admin/user_admin_service.dart';
 
+// ====== CONTROLLER CATEGORÍAS ======
+import 'package:quimisol/features/admin/categorias/controllers/categoria_controller.dart';
+
+// ====== SERVICE CATEGORÍAS ======
+import 'package:quimisol/core/services/postgresql/categorias/categoria_service.dart';
+import 'package:quimisol/features/public/favoritos/favoritos_page.dart';
+
+
 // ============================================================
 // ==  CONFIG
 // ============================================================
@@ -86,6 +99,7 @@ class AppModule extends Module {
     // Según tus clases actuales, NO reciben baseUrl por constructor:
     i.addLazySingleton<UnidadService>(() => UnidadService());
     i.addLazySingleton<ProductoService>(() => ProductoService());
+    i.addLazySingleton<CategoriaService>(() => CategoriaService());
 
     // Este SÍ recibe baseUrl:
     i.addLazySingleton<UserAdminService>(
@@ -98,6 +112,7 @@ class AppModule extends Module {
     // Constructores sin named param 'service'
     i.addLazySingleton<UnidadController>(() => UnidadController());
     i.addLazySingleton<ProductoController>(() => ProductoController());
+    i.addLazySingleton<CategoriaController>(() => CategoriaController());
   }
 
   // ---------------------------------------------------------------------------
@@ -109,6 +124,7 @@ class AppModule extends Module {
     r.child('/', child: (_) => const SplashScreen());
     r.child('/home-guest', child: (_) => const HomeGuestPage());
     r.child('/home-user', child: (_) => const HomeUserPage());
+    r.child('/favoritos', child: (_) => const FavoritosPage());
     r.child('/locations/add', child: (_) => const AddLocationMapPage());
 
     // ====== (NUEVO) CLIENTE: Carrito & Pedidos ======
@@ -153,5 +169,14 @@ class AppModule extends Module {
       final detalle = Modular.args.data as DetalleProducto;
       return DetalleProductoEditPage(detalle: detalle);
     });
+
+    // Admin – Categorías
+    r.child('/admin/categorias', child: (_) => const CategoriaListPage());
+    r.child('/admin/categorias/create', child: (_) => const CategoriaCreatePage());
+    r.child('/admin/categorias/edit', child: (_) {
+      final categoria = Modular.args.data as Categoria;
+      return CategoriaEditPage(categoria: categoria);
+    });
+
   }
 }
