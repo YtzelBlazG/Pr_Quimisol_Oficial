@@ -18,16 +18,8 @@ class _AdminTopBarState extends State<AdminTopBar> {
     "Dashboard": {"route": "/dashboard", "items": []},
     "Usuarios": {
       "items": [
-        {
-          "label": "Lista de Usuarios",
-          "icon": Icons.people,
-          "route": "/usuarios",
-        },
-        {
-          "label": "Roles y Permisos",
-          "icon": Icons.admin_panel_settings,
-          "route": "/usuarios/roles",
-        },
+        {"label": "Lista de Usuarios", "icon": Icons.people, "route": "/usuarios"},
+        {"label": "Roles y Permisos", "icon": Icons.admin_panel_settings, "route": "/usuarios/roles"},
       ],
     },
     "Productos": {
@@ -51,6 +43,12 @@ class _AdminTopBarState extends State<AdminTopBar> {
   String? _hoveredMenu;
   OverlayEntry? _dropdownOverlay;
 
+  @override
+  void dispose() {
+    _removeDropdown();
+    super.dispose();
+  }
+
   void _showDropdown(
     BuildContext context,
     String key,
@@ -60,11 +58,11 @@ class _AdminTopBarState extends State<AdminTopBar> {
     _removeDropdown();
     if (items.isEmpty) return;
 
-    final RenderBox? renderBox = menuKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) return;
+    final renderObj = menuKey.currentContext?.findRenderObject();
+    if (renderObj is! RenderBox) return;
 
-    final Offset position = renderBox.localToGlobal(Offset.zero);
-    final Size size = renderBox.size;
+    final position = renderObj.localToGlobal(Offset.zero);
+    final size = renderObj.size;
 
     _dropdownOverlay = OverlayEntry(
       builder: (context) => Stack(
@@ -100,7 +98,6 @@ class _AdminTopBarState extends State<AdminTopBar> {
   void _showUserMenu(BuildContext context) {
     _removeDropdown();
     final items = _userMenu['items'] as List<Map<String, dynamic>>;
-
     _dropdownOverlay = OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -138,86 +135,102 @@ class _AdminTopBarState extends State<AdminTopBar> {
         titleSpacing: 0,
         automaticallyImplyLeading: false,
         title: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              // Logo + Texto
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Palette.white,
-                      borderRadius: BorderRadius.circular(8),
+              // ─── Branding ────────────────────────────────────────────────
+              Flexible(
+                flex: 0,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Palette.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.science, color: Palette.primary, size: 20),
                     ),
-                    child: const Icon(Icons.science, color: Palette.primary, size: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    "Quimisol Admin",
-                    style: const TextStyle(
-                      color: Palette.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                    const SizedBox(width: 10),
+                    const Text(
+                      "Quimisol Admin",
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Palette.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const Spacer(),
 
-              // Menú principal
-              ..._menuItems.keys.map((key) {
-                final GlobalKey itemKey = GlobalKey();
-                final hasSubmenu = (_menuItems[key]!['items'] as List).isNotEmpty;
-                final route = _menuItems[key]!['route'];
+              const SizedBox(width: 12),
 
-                return MouseRegion(
-                  key: itemKey,
-                  onEnter: (_) {
-                    if (hasSubmenu) {
-                      _showDropdown(context, key, itemKey, _menuItems[key]!['items']);
-                      setState(() => _hoveredMenu = key);
-                    }
-                  },
-                  onExit: (_) {
-                    if (hasSubmenu) {
-                      Future.delayed(const Duration(milliseconds: 200), () {
-                        if (mounted && _hoveredMenu == key) {
-                          setState(() => _hoveredMenu = null);
-                        }
-                      });
-                    }
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    child: TextButton(
-                      onPressed: () {
-                        if (!hasSubmenu && route != null) {
-                          widget.onNavigate?.call(route);
-                        }
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        backgroundColor:
-                            _hoveredMenu == key ? Palette.secButton : Colors.transparent,
-                      ),
-                      child: Text(
-                        key,
-                        style: TextStyle(
-                          color: Palette.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
+              // ─── Menú (scroll horizontal para evitar overflow) ───────────
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: _menuItems.keys.map((key) {
+                      final GlobalKey itemKey = GlobalKey();
+                      final hasSubmenu = (_menuItems[key]!['items'] as List).isNotEmpty;
+                      final route = _menuItems[key]!['route'];
+
+                      return MouseRegion(
+                        key: itemKey,
+                        onEnter: (_) {
+                          if (hasSubmenu) {
+                            _showDropdown(context, key, itemKey, List<Map<String, dynamic>>.from(_menuItems[key]!['items']));
+                            setState(() => _hoveredMenu = key);
+                          }
+                        },
+                        onExit: (_) {
+                          if (hasSubmenu) {
+                            Future.delayed(const Duration(milliseconds: 200), () {
+                              if (mounted && _hoveredMenu == key) {
+                                setState(() => _hoveredMenu = null);
+                              }
+                            });
+                          }
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          child: TextButton(
+                            onPressed: () {
+                              if (!hasSubmenu && route != null) {
+                                widget.onNavigate?.call(route);
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              backgroundColor: _hoveredMenu == key ? Palette.secButton : Colors.transparent,
+                            ),
+                            child: Text(
+                              key,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Palette.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
-              const Spacer(),
+                ),
+              ),
 
-              // Íconos derecha
+              const SizedBox(width: 12),
+
+              // ─── Acciones derecha ────────────────────────────────────────
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   _iconButton(Icons.search),
                   const SizedBox(width: 8),
@@ -253,6 +266,7 @@ class _AdminTopBarState extends State<AdminTopBar> {
   }
 }
 
+// ───────────────────────────────────────────────────────────────────────────────
 // Dropdown animado
 class _AnimatedDropdown extends StatefulWidget {
   final List<Map<String, dynamic>> items;
@@ -266,19 +280,14 @@ class _AnimatedDropdown extends StatefulWidget {
 
 class _AnimatedDropdownState extends State<_AnimatedDropdown>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _opacity;
-  late Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 180))
-      ..forward();
-    _opacity = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
-    _slide =
-        Tween<Offset>(begin: const Offset(0, -0.1), end: Offset.zero).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-  }
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 180))..forward();
+  late final Animation<double> _opacity =
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, -0.1),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
   @override
   void dispose() {
@@ -304,9 +313,9 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
               border: Border.all(color: Palette.fieldBg, width: 1),
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: widget.items.map((item) {
                 return InkWell(
-                  borderRadius: BorderRadius.circular(10),
                   onTap: () => widget.onSelect(item['route']),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -321,12 +330,15 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
                           child: Icon(item['icon'], color: Palette.primary, size: 18),
                         ),
                         const SizedBox(width: 12),
-                        Text(
-                          item['label'],
-                          style: const TextStyle(
-                            color: Palette.primary,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                        Expanded(
+                          child: Text(
+                            item['label'],
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Palette.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],

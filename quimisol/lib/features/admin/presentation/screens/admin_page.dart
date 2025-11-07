@@ -54,6 +54,7 @@ class _AdminPageState extends State<AdminPage> {
     Modular.to.pushReplacementNamed('/auth/login');
   }
 
+  // Maneja la navegación interna sin recargar todo el Scaffold
   void _handleNavigation(String route) {
     if (route == '/logout') {
       _logout(context);
@@ -64,9 +65,13 @@ class _AdminPageState extends State<AdminPage> {
       return;
     }
 
+    // Evita recargar si ya estás en la misma vista
+    if (_currentRoute == route) return;
+
+    // Actualiza solo la vista interna
     setState(() => _currentRoute = route);
-    Navigator.of(context).maybePop();
   }
+
 
   void _openProfile() {
     Navigator.of(context).maybePop();

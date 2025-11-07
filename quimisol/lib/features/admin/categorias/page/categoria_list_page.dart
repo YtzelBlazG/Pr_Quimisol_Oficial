@@ -1,5 +1,7 @@
+// lib/features/admin/categorias/presentation/pages/categoria_list_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/features/admin/categorias/data/categoria_model.dart';
 import '../controllers/categoria_controller.dart';
 
@@ -12,14 +14,21 @@ class CategoriaListPage extends StatefulWidget {
 
 class _CategoriaListPageState extends State<CategoriaListPage> {
   final CategoriaController controlador = Modular.get<CategoriaController>();
-  final TextEditingController _buscadorCtrl = TextEditingController();
+  final TextEditingController _buscarCtrl = TextEditingController();
   List<Categoria> filtradas = [];
 
   @override
   void initState() {
     super.initState();
     _cargarYFiltrar();
-    _buscadorCtrl.addListener(_filtrarResultados);
+    _buscarCtrl.addListener(_filtrarResultados);
+  }
+
+  @override
+  void dispose() {
+    _buscarCtrl.removeListener(_filtrarResultados);
+    _buscarCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _cargarYFiltrar() async {
@@ -30,7 +39,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
   }
 
   void _filtrarResultados() {
-    final texto = _buscadorCtrl.text.toLowerCase();
+    final texto = _buscarCtrl.text.toLowerCase();
     setState(() {
       filtradas = controlador.categorias
           .where((c) => c.nombre.toLowerCase().contains(texto))
@@ -38,7 +47,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
     });
   }
 
-  void _confirmarEliminar(BuildContext context, Categoria categoria) {
+  void _confirmarEliminar(Categoria categoria) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -69,138 +78,296 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Categorías"),
-        backgroundColor: Colors.purple,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text("Nueva categoría"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: () async {
-                      await Modular.to.pushNamed('/admin/categorias/create');
-                      await _cargarYFiltrar();
-                    },
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextField(
-                  controller: _buscadorCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Buscar por nombre',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                filtradas.isEmpty
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Text('No hay categorías para mostrar.'),
-                        ),
-                      )
-                    : Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Table(
-                            columnWidths: const {
-                              0: FlexColumnWidth(3),
-                              1: FlexColumnWidth(4),
-                              2: FlexColumnWidth(2),
-                            },
-                            border: TableBorder.symmetric(
-                              inside: BorderSide(color: Colors.grey.shade300),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: EdgeInsets.all(isMobile ? 16 : 24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // TÍTULO + BUSCADOR
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Categorías",
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Palette.primary,
+                                  ),
+                                ),
+                                Text(
+                                  "${filtradas.length} categorías encontradas",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Palette.primary.withOpacity(0.7),
+                                  ),
+                                ),
+                              ],
                             ),
-                            children: [
-                              const TableRow(
-                                decoration:
-                                    BoxDecoration(color: Color(0xFFEAE6F1)),
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Text('Nombre',
-                                        style: TextStyle(fontWeight: FontWeight.bold)),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Text('Descripción',
-                                        style: TextStyle(fontWeight: FontWeight.bold)),
-                                  ),
-                                  Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Text('Acciones',
-                                        style: TextStyle(fontWeight: FontWeight.bold)),
-                                  ),
-                                ],
-                              ),
-                              ...filtradas.map((categoria) {
-                                return TableRow(
-                                  decoration: const BoxDecoration(color: Colors.white),
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text(categoria.nombre),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Text(categoria.descripcion ?? ''),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.edit, color: Colors.blue),
-                                            tooltip: "Editar",
-                                            onPressed: () async {
-                                              await Modular.to.pushNamed(
-                                                '/admin/categorias/edit',
-                                                arguments: categoria,
-                                              );
-                                              await _cargarYFiltrar();
-                                            },
-                                          ),
-                                          IconButton(
-                                            icon: const Icon(Icons.delete, color: Colors.red),
-                                            tooltip: "Eliminar",
-                                            onPressed: () =>
-                                                _confirmarEliminar(context, categoria),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              }).toList(),
-                            ],
                           ),
+                          const SizedBox(width: 16),
+                          SizedBox(
+                            width: 320,
+                            child: TextField(
+                              controller: _buscarCtrl,
+                              decoration: InputDecoration(
+                                hintText: 'Buscar por nombre',
+                                prefixIcon: Icon(Icons.search, color: Palette.primary),
+                                filled: true,
+                                fillColor: Palette.fieldBg,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(color: Palette.card),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  borderSide: BorderSide(color: Palette.card),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // TABLA MODERNA
+                      filtradas.isEmpty
+                          ? _buildEmptyState()
+                          : _ModernDataTable(
+                              categorias: filtradas,
+                              onEdit: (categoria) async {
+                                await Modular.to.pushNamed(
+                                  '/admin/categorias/edit',
+                                  arguments: categoria,
+                                );
+                                await _cargarYFiltrar();
+                              },
+                              onDelete: (categoria) => _confirmarEliminar(categoria),
+                            ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // BOTÓN FLOTANTE (MANTENIDO COMO ESTÁ)
+            Positioned(
+              right: 24,
+              bottom: 24,
+              child: FloatingActionButton.extended(
+                backgroundColor: Palette.primary,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.add, size: 22),
+                label: const Text(
+                  "Nueva categoría",
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
+                elevation: 10,
+                onPressed: () async {
+                  await Modular.to.pushNamed('/admin/categorias/create');
+                  await _cargarYFiltrar();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            Icon(Icons.category_outlined, size: 70, color: Palette.primary.withOpacity(0.3)),
+            const SizedBox(height: 16),
+            Text(
+              'No se encontraron categorías',
+              style: TextStyle(fontSize: 17, color: Palette.primary.withOpacity(0.6)),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Intenta buscar o crea una nueva',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// === TABLA MODERNA ===
+class _ModernDataTable extends StatelessWidget {
+  final List<Categoria> categorias;
+  final void Function(Categoria) onEdit;
+  final void Function(Categoria) onDelete;
+
+  const _ModernDataTable({
+    required this.categorias,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Palette.card),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            headingRowHeight: 64,
+            dataRowHeight: 64,
+            headingRowColor: WidgetStateProperty.all(Palette.card),
+            columnSpacing: 32,
+            horizontalMargin: 24,
+            columns: [
+              _buildHeader('Nombre', width: 250),
+              _buildHeader('Descripción', width: 350),
+              _buildHeader('Acciones', width: 150, alignment: Alignment.center),
+            ],
+            rows: categorias.map((categoria) {
+              return DataRow(
+                color: WidgetStateProperty.resolveWith<Color?>((states) {
+                  if (states.contains(WidgetState.hovered)) {
+                    return Palette.card.withOpacity(0.5);
+                  }
+                  return Colors.transparent;
+                }),
+                cells: [
+                  DataCell(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Text(
+                        categoria.nombre,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Palette.primary,
+                          fontSize: 15,
                         ),
                       ),
-              ],
+                    ),
+                  ),
+                  DataCell(
+                    Text(
+                      categoria.descripcion ?? 'Sin descripción',
+                      style: TextStyle(
+                        color: Palette.primary.withOpacity(0.9),
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                  DataCell(
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _ActionButton(
+                            icon: Icons.edit,
+                            color: Palette.primary,
+                            onTap: () => onEdit(categoria),
+                            tooltip: "Editar",
+                          ),
+                          const SizedBox(width: 12),
+                          _ActionButton(
+                            icon: Icons.delete,
+                            color: Colors.red.shade600,
+                            onTap: () => onDelete(categoria),
+                            tooltip: "Eliminar",
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  DataColumn _buildHeader(String label, {double? width, AlignmentGeometry alignment = Alignment.centerLeft}) {
+    return DataColumn(
+      label: Container(
+        width: width,
+        alignment: alignment,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: Palette.primary.withOpacity(0.95),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// === BOTÓN DE ACCIÓN ===
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final String tooltip;
+
+  const _ActionButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+    required this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icon, size: 20, color: color),
           ),
         ),
       ),
