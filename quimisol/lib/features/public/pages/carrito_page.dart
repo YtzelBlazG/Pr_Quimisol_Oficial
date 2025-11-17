@@ -98,6 +98,8 @@ class _CarritoPageState extends State<CarritoPage> {
     });
   }
 
+  /// Ahora "Finalizar" SOLO te lleva a seleccionar ubicaciones.
+  /// La creación del pedido se hace en SelectLocationsPage.
   Future<void> _finalizarCompra() async {
     try {
       final idUsuario = await AuthStorage.getIdPersona();
@@ -107,6 +109,7 @@ class _CarritoPageState extends State<CarritoPage> {
         ).showSnackBar(const SnackBar(content: Text('Debes iniciar sesión')));
         return;
       }
+
       if (_productosAgrupados.isEmpty) {
         ScaffoldMessenger.of(
           context,
@@ -114,36 +117,23 @@ class _CarritoPageState extends State<CarritoPage> {
         return;
       }
 
-      setState(() => _loading = true);
-      final url = Uri.parse(
-        'http://localhost:3005/pedidos/crear-desde-carrito/$idUsuario',
-      );
-      final resp = await http.post(url);
-      setState(() => _loading = false);
+      final result = await Modular.to.pushNamed<bool>('/locations/select');
 
-      if (resp.statusCode == 201) {
-        final json = jsonDecode(resp.body);
-        final idPedido = json['pedido']?['idpedido'];
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('¡Pedido #$idPedido creado!')));
+      if (result == true) {
+        // El pedido se creó y se guardaron ubicaciones en la otra pantalla
+        await _cargarCarrito(); // se limpiará porque el backend borra el carrito
+        if (!mounted) return;
 
-        // limpiar UI local y navegar a pedidos
-        setState(() {
-          _productosAgrupados = [];
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pedido creado y ubicaciones guardadas correctamente ✅'),
+          ),
+        );
 
-        // Navegar con Modular a /pedidos
+        // Opcional: ir a "Mis pedidos"
         Modular.to.pushNamed('/pedidos');
-      } else {
-        final msg =
-            jsonDecode(resp.body)['message'] ?? 'Error al crear el pedido';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
-      setState(() => _loading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -156,6 +146,7 @@ class _CarritoPageState extends State<CarritoPage> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Mi carrito'),
         backgroundColor: Palette.primary,
         foregroundColor: Colors.white,
@@ -163,85 +154,86 @@ class _CarritoPageState extends State<CarritoPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _productosAgrupados.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Tu carrito está vacío'),
-                  const SizedBox(height: 12),
-                  IconButton.filled(
-                    onPressed: () => Modular.to.pushNamed('/pedidos'),
-                    icon: const Icon(Icons.receipt_long),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Palette.button,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _productosAgrupados.length,
-              itemBuilder: (context, index) {
-                final producto = _productosAgrupados[index];
-                final precio =
-                    double.tryParse(producto['precio'].toString()) ?? 0.0;
-                final cantidad =
-                    int.tryParse(producto['cantidad'].toString()) ?? 0;
-                final subtotal = precio * cantidad;
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                  child: ListTile(
-                    leading: producto['imagen'] != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              producto['imagen'],
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(
-                                Icons.image_not_supported,
-                                size: 50,
-                              ),
-                            ),
-                          )
-                        : const Icon(Icons.image_not_supported, size: 50),
-                    title: Text(
-                      producto['nombre'] ?? 'Producto sin nombre',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('Tu carrito está vacío'),
+                      const SizedBox(height: 12),
+                      IconButton.filled(
+                        onPressed: () => Modular.to.pushNamed('/pedidos'),
+                        icon: const Icon(Icons.receipt_long),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Palette.button,
+                          foregroundColor: Colors.white,
+                        ),
                       ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Cantidad: $cantidad'),
-                        Text(
-                          'Precio unitario: ${precio.toStringAsFixed(2)} Bs',
-                        ),
-                        Text(
-                          'Subtotal: ${subtotal.toStringAsFixed(2)} Bs',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () =>
-                          _eliminarProducto(producto['idproducto']),
-                    ),
+                    ],
                   ),
-                );
-              },
-            ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _productosAgrupados.length,
+                  itemBuilder: (context, index) {
+                    final producto = _productosAgrupados[index];
+                    final precio =
+                        double.tryParse(producto['precio'].toString()) ?? 0.0;
+                    final cantidad =
+                        int.tryParse(producto['cantidad'].toString()) ?? 0;
+                    final subtotal = precio * cantidad;
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                      child: ListTile(
+                        leading: producto['imagen'] != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  producto['imagen'],
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.image_not_supported,
+                                    size: 50,
+                                  ),
+                                ),
+                              )
+                            : const Icon(Icons.image_not_supported, size: 50),
+                        title: Text(
+                          producto['nombre'] ?? 'Producto sin nombre',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Cantidad: $cantidad'),
+                            Text(
+                              'Precio unitario: ${precio.toStringAsFixed(2)} Bs',
+                            ),
+                            Text(
+                              'Subtotal: ${subtotal.toStringAsFixed(2)} Bs',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () =>
+                              _eliminarProducto(producto['idproducto']),
+                        ),
+                      ),
+                    );
+                  },
+                ),
       bottomNavigationBar: _productosAgrupados.isEmpty
           ? null
           : Container(

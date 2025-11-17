@@ -129,7 +129,11 @@ class _LoginPageState extends State<LoginPage> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (rol == 'admin') {
             Modular.to.pushReplacementNamed('/admin');
+          } else if (rol == 'repartidor') {
+            // 👇 nuevo flujo para repartidor
+            Modular.to.pushReplacementNamed('/home-repartidor');
           } else {
+            // cliente u otros roles
             Modular.to.pushReplacementNamed('/home-user', arguments: {
               'nombre': nombreOk,
               'correo': correoOk,
@@ -236,18 +240,19 @@ class _LoginPageState extends State<LoginPage> {
 
                 Row(
                   children: [
-                    /*Checkbox(value: false, onChanged: (v) {}),
-                    const Text('Recordarme',
-                        style: TextStyle(color: Palette.primary)),
-                    const Spacer(),*/
                     TextButton(
                       onPressed: () {
                         Navigator.push(
-                          context, MaterialPageRoute(builder: (_) => const RequestCodeScreen()),
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RequestCodeScreen(),
+                          ),
                         );
                       },
-                      child: const Text('¿Olvidaste tu contraseña?',
-                          style: TextStyle(color: Palette.primary)),
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(color: Palette.primary),
+                      ),
                     ),
                   ],
                 ),
@@ -267,17 +272,20 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     SocialButton(
                       icon: FontAwesomeIcons.google,
-                      onPressed: () async => await Future.delayed(_socialDelay),
+                      onPressed: () async =>
+                          await Future.delayed(_socialDelay),
                     ),
                     const SizedBox(width: 10),
                     SocialButton(
                       icon: FontAwesomeIcons.facebookF,
-                      onPressed: () async => await Future.delayed(_socialDelay),
+                      onPressed: () async =>
+                          await Future.delayed(_socialDelay),
                     ),
                     const SizedBox(width: 10),
                     SocialButton(
                       icon: FontAwesomeIcons.instagram,
-                      onPressed: () async => await Future.delayed(_socialDelay),
+                      onPressed: () async =>
+                          await Future.delayed(_socialDelay),
                     ),
                   ],
                 ),

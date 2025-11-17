@@ -19,7 +19,11 @@ class _AdminTopBarState extends State<AdminTopBar> {
     "Usuarios": {
       "items": [
         {"label": "Lista de Usuarios", "icon": Icons.people, "route": "/usuarios"},
-        {"label": "Roles y Permisos", "icon": Icons.admin_panel_settings, "route": "/usuarios/roles"},
+        {
+          "label": "Roles y Permisos",
+          "icon": Icons.admin_panel_settings,
+          "route": "/usuarios/roles"
+        },
       ],
     },
     "Productos": {
@@ -27,9 +31,30 @@ class _AdminTopBarState extends State<AdminTopBar> {
         {"label": "Productos", "icon": Icons.shopping_bag, "route": "/productos"},
         {"label": "Categorías", "icon": Icons.category, "route": "/categorias"},
         {"label": "Unidades", "icon": Icons.grid_view, "route": "/unidades"},
-        {"label": "Detalle Productos", "icon": Icons.list_alt, "route": "/detalleproducto"},
+        {
+          "label": "Detalle Productos",
+          "icon": Icons.list_alt,
+          "route": "/detalleproducto"
+        },
       ],
     },
+
+    // 👉 MENÚ PEDIDOS CON SUBMENÚ
+    "Pedidos": {
+      "items": [
+        {
+          "label": "Lista de pedidos",
+          "icon": Icons.receipt_long,
+          "route": "/pedidos",
+        },
+        {
+          "label": "Ciclos de entrega",
+          "icon": Icons.calendar_month,
+          "route": "/ciclos-entrega",
+        },
+      ],
+    },
+
     "Configuración": {"items": []},
   };
 
@@ -150,7 +175,8 @@ class _AdminTopBarState extends State<AdminTopBar> {
                         color: Palette.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.science, color: Palette.primary, size: 20),
+                      child: const Icon(Icons.science,
+                          color: Palette.primary, size: 20),
                     ),
                     const SizedBox(width: 10),
                     const Text(
@@ -176,20 +202,28 @@ class _AdminTopBarState extends State<AdminTopBar> {
                   child: Row(
                     children: _menuItems.keys.map((key) {
                       final GlobalKey itemKey = GlobalKey();
-                      final hasSubmenu = (_menuItems[key]!['items'] as List).isNotEmpty;
+                      final hasSubmenu =
+                          (_menuItems[key]!['items'] as List).isNotEmpty;
                       final route = _menuItems[key]!['route'];
 
                       return MouseRegion(
                         key: itemKey,
                         onEnter: (_) {
                           if (hasSubmenu) {
-                            _showDropdown(context, key, itemKey, List<Map<String, dynamic>>.from(_menuItems[key]!['items']));
+                            _showDropdown(
+                              context,
+                              key,
+                              itemKey,
+                              List<Map<String, dynamic>>.from(
+                                  _menuItems[key]!['items']),
+                            );
                             setState(() => _hoveredMenu = key);
                           }
                         },
                         onExit: (_) {
                           if (hasSubmenu) {
-                            Future.delayed(const Duration(milliseconds: 200), () {
+                            Future.delayed(
+                                const Duration(milliseconds: 200), () {
                               if (mounted && _hoveredMenu == key) {
                                 setState(() => _hoveredMenu = null);
                               }
@@ -205,9 +239,14 @@ class _AdminTopBarState extends State<AdminTopBar> {
                               }
                             },
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              backgroundColor: _hoveredMenu == key ? Palette.secButton : Colors.transparent,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              backgroundColor: _hoveredMenu == key
+                                  ? Palette.secButton
+                                  : Colors.transparent,
                             ),
                             child: Text(
                               key,
@@ -280,14 +319,19 @@ class _AnimatedDropdown extends StatefulWidget {
 
 class _AnimatedDropdownState extends State<_AnimatedDropdown>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 180))..forward();
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+  )..forward();
+
   late final Animation<double> _opacity =
       CurvedAnimation(parent: _controller, curve: Curves.easeOut);
   late final Animation<Offset> _slide = Tween<Offset>(
     begin: const Offset(0, -0.1),
     end: Offset.zero,
-  ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+  ).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+  );
 
   @override
   void dispose() {
@@ -318,7 +362,8 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
                 return InkWell(
                   onTap: () => widget.onSelect(item['route']),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     child: Row(
                       children: [
                         Container(
@@ -327,7 +372,11 @@ class _AnimatedDropdownState extends State<_AnimatedDropdown>
                             color: Palette.card,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Icon(item['icon'], color: Palette.primary, size: 18),
+                          child: Icon(
+                            item['icon'],
+                            color: Palette.primary,
+                            size: 18,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

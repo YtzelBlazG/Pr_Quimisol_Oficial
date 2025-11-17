@@ -42,6 +42,7 @@ class _HomeUserPerfilState extends State<HomeUserPerfil> {
     return Scaffold(
       backgroundColor: Palette.fieldBg,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Palette.fieldBg,
         elevation: 0,
         title: const Text('Mi perfil', style: TextStyle(color: Colors.black)),
@@ -74,7 +75,7 @@ class _HomeUserPerfilState extends State<HomeUserPerfil> {
 
           const Text("Perfil", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 10),
-          _buildTile(Icons.location_on, "Direcciones", () {}),
+          _buildTile(Icons.location_on, "Direcciones", () => Modular.to.pushNamed('/locations')),
           _buildTile(Icons.favorite, "Favoritos", () => Modular.to.pushNamed('/favoritos')),
 
 

@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/core/storage/auth_storage.dart';
+import 'package:quimisol/features/admin/ciclo-entrega/ciclos_entrega_page.dart';
+
+// ✅ Pedidos
+import 'package:quimisol/features/admin/pedidos/screens/pedidos_list_page.dart';
+
 
 // Pantallas principales
 import 'package:quimisol/features/admin/presentation/screens/admin_user_page.dart';
@@ -29,6 +34,8 @@ class _AdminPageState extends State<AdminPage> {
   String? _userName;
   String? _userEmail;
   bool _loadingUser = true;
+
+  // 👇 aquí se decide qué widget mostrar
   String _currentRoute = '/dashboard';
 
   @override
@@ -43,8 +50,9 @@ class _AdminPageState extends State<AdminPage> {
     if (!mounted) return;
     setState(() {
       _userName = (name ?? '').trim().isEmpty ? 'Usuario' : name!.trim();
-      _userEmail =
-          (email ?? '').trim().isEmpty ? 'sin_correo@ejemplo.com' : email!.trim();
+      _userEmail = (email ?? '').trim().isEmpty
+          ? 'sin_correo@ejemplo.com'
+          : email!.trim();
       _loadingUser = false;
     });
   }
@@ -54,7 +62,7 @@ class _AdminPageState extends State<AdminPage> {
     Modular.to.pushReplacementNamed('/auth/login');
   }
 
-  // Maneja la navegación interna sin recargar todo el Scaffold
+  // 🔁 Navegación interna para TopBar + Drawer
   void _handleNavigation(String route) {
     if (route == '/logout') {
       _logout(context);
@@ -65,19 +73,16 @@ class _AdminPageState extends State<AdminPage> {
       return;
     }
 
-    // Evita recargar si ya estás en la misma vista
     if (_currentRoute == route) return;
 
-    // Actualiza solo la vista interna
     setState(() => _currentRoute = route);
   }
 
-
   void _openProfile() {
     Navigator.of(context).maybePop();
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
   }
 
   @override
@@ -161,6 +166,15 @@ class _AdminPageState extends State<AdminPage> {
               selected: _currentRoute == '/detalleproducto',
               onTap: () => _handleNavigation('/detalleproducto'),
             ),
+            // (Opcional) también puedes poner un item para ciclos aquí
+            /*
+            _DrawerItem(
+              icon: Icons.calendar_month,
+              text: "Ciclos de entrega",
+              selected: _currentRoute == '/ciclos-entrega',
+              onTap: () => _handleNavigation('/ciclos-entrega'),
+            ),
+            */
             _DrawerItem(
               icon: Icons.settings,
               text: "Configuración",
@@ -207,6 +221,10 @@ class _AdminPageState extends State<AdminPage> {
         return const ProductoListPage();
       case '/categorias':
         return const CategoriaListPage();
+      case '/pedidos':
+        return const PedidosListPage();
+      case '/ciclos-entrega':                 // ✅ NUEVO CASE
+        return const CiclosEntregaPage();
       case '/unidades':
         return const UnidadListPage();
       case '/detalleproducto':

@@ -2,39 +2,35 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class GeocodingService {
+  final String mapboxToken;
   GeocodingService({required this.mapboxToken});
 
-  final String mapboxToken;
-
-  Future<Map<String, String>> reverseGeocodeMapbox({
-    required double lat,
-    required double lng,
-  }) async {
+  Future<Map<String, String>> reverse(double lat, double lng) async {
     final url =
         'https://api.mapbox.com/geocoding/v5/mapbox.places/$lng,$lat.json'
         '?access_token=$mapboxToken&language=es&limit=1';
-    final resp = await http.get(Uri.parse(url));
-    if (resp.statusCode == 200) {
-      final json = jsonDecode(resp.body) as Map<String, dynamic>;
-      final features = (json['features'] as List?) ?? [];
-      if (features.isNotEmpty) {
-        final f = features.first as Map<String, dynamic>;
-        final fullAddress = (f['place_name'] ?? '').toString();
 
-        String city = '';
-        final ctx = (f['context'] as List?) ?? [];
-        for (final c in ctx) {
-          final id = (c['id'] ?? '').toString();
-          if (id.startsWith('place')) {
-            city = (c['text'] ?? '').toString();
-            break;
-          }
-        }
-        if (city.isEmpty) city = (f['text'] ?? '').toString();
+    final res = await http.get(Uri.parse(url));
+    if (res.statusCode != 200) {
+      return {'direccion': '', 'ciudad': ''};
+    }
 
-        return {'direccion': fullAddress, 'ciudad': city};
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    final feat = (json['features'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+    if (feat.isEmpty) return {'direccion': '', 'ciudad': ''};
+
+    final f = feat.first;
+    final direccion = (f['place_name'] ?? '') as String;
+
+    String ciudad = '';
+    final ctx = (f['context'] as List?) ?? [];
+    for (final c in ctx) {
+      final id = (c['id'] ?? '') as String;
+      if (id.startsWith('place.')) {
+        ciudad = (c['text'] ?? '') as String;
+        break;
       }
     }
-    return {'direccion': '', 'ciudad': ''};
+    return {'direccion': direccion, 'ciudad': ciudad};
   }
 }

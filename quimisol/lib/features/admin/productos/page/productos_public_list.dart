@@ -126,6 +126,7 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Productos'),
         backgroundColor: Palette.primary, 
         foregroundColor: Colors.white,
