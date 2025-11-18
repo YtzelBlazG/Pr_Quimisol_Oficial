@@ -34,14 +34,16 @@ class _PedidosPageState extends State<PedidosPage>
       final idUsuario = await AuthStorage.getIdPersona();
       if (idUsuario == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Debes iniciar sesión')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Debes iniciar sesión')));
         setState(() => _loading = false);
         return;
       }
 
-      final url = Uri.parse('http://localhost:3005/pedidos/usuario/$idUsuario');
+      final url = Uri.parse(
+        'http://192.168.213.85:3005/pedidos/usuario/$idUsuario',
+      );
       final resp = await http.get(url);
       if (resp.statusCode == 200) {
         setState(() {
@@ -58,15 +60,15 @@ class _PedidosPageState extends State<PedidosPage>
     } catch (e) {
       setState(() => _loading = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   /// Devuelve {detalles: List, ubicaciones: List}
   Future<Map<String, dynamic>> _cargarDetalleYUbicaciones(int idPedido) async {
-    final url = Uri.parse('http://localhost:3005/pedidos/$idPedido');
+    final url = Uri.parse('http://192.168.213.85:3005/pedidos/$idPedido');
     final resp = await http.get(url);
     if (resp.statusCode == 200) {
       final json = jsonDecode(resp.body);
@@ -106,19 +108,19 @@ class _PedidosPageState extends State<PedidosPage>
     // Código público
     final String codigoPedido =
         (p['codigo_publico'] ??
-                    p['codigo'] ??
-                    (id != null
-                        ? 'QMS-${id.toString().padLeft(6, '0')}'
-                        : 'Pedido'))
-                .toString();
+                p['codigo'] ??
+                (id != null
+                    ? 'QMS-${id.toString().padLeft(6, '0')}'
+                    : 'Pedido'))
+            .toString();
 
     // base y total final
     final double baseTotal = double.tryParse((p['total'] ?? 0).toString()) ?? 0;
     final double totalConUbicaciones =
         double.tryParse(
-              (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
-            ) ??
-            baseTotal;
+          (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
+        ) ??
+        baseTotal;
 
     final int ubicacionesCount =
         int.tryParse((p['ubicaciones_count'] ?? 0).toString()) ?? 0;
@@ -340,8 +342,7 @@ class _PedidosPageState extends State<PedidosPage>
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ListTile(
-                        leading:
-                            const CircleAvatar(child: Icon(Icons.place)),
+                        leading: const CircleAvatar(child: Icon(Icons.place)),
                         title: Text(
                           nombre.isEmpty ? 'Ubicación' : nombre,
                           maxLines: 1,
@@ -425,8 +426,7 @@ class _PedidosPageState extends State<PedidosPage>
                   return Center(
                     child: Text(
                       'No hay pedidos ${_labelEstado(estadoTab).toLowerCase()}',
-                      style:
-                          const TextStyle(fontSize: 15, color: Colors.grey),
+                      style: const TextStyle(fontSize: 15, color: Colors.grey),
                     ),
                   );
                 }
@@ -436,8 +436,7 @@ class _PedidosPageState extends State<PedidosPage>
                   child: ListView.builder(
                     padding: const EdgeInsets.only(top: 10),
                     itemCount: filtrados.length,
-                    itemBuilder: (context, i) =>
-                        _buildPedidoCard(filtrados[i]),
+                    itemBuilder: (context, i) => _buildPedidoCard(filtrados[i]),
                   ),
                 );
               }).toList(),

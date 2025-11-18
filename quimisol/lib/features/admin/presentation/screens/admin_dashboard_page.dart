@@ -13,7 +13,7 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   // <- AJUSTA TU BACKEND
-  static const _apiBase = 'http://localhost:3005';
+  static const _apiBase = 'http://192.168.213.85:3005';
 
   late final AdminStatsService _service;
   late final AiDashboardService _ai;
@@ -54,38 +54,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   }
 
   Map<String, dynamic> _payloadForAi() => {
-        'totalUsers': _summary.totalUsers,
-        'totalProducts': _summary.totalProducts,
-        'totalOrders': _summary.totalOrders,
-        'ordersPending': _summary.ordersPending,
-        'lowStockCount': _summary.lowStockCount,
-        'revenueToday': _summary.revenueToday,
-        'revenueMonth': _summary.revenueMonth,
-        'recentOrders': _summary.recentOrders
-            .map((e) => {
-                  'id': e.id,
-                  'code': e.code,
-                  'customer': e.customer,
-                  'items': e.items,
-                  'total': e.total,
-                  'status': e.status
-                })
-            .toList(),
-        'topProducts': _summary.topProducts
-            .map((e) => {
-                  'name': e.name,
-                  'sold': e.sold,
-                  'revenue': e.revenue,
-                })
-            .toList(),
-        'lowStock': _summary.lowStockItems
-            .map((e) => {
-                  'name': e.name,
-                  'stock': e.stock,
-                  'minStock': e.minStock,
-                })
-            .toList(),
-      };
+    'totalUsers': _summary.totalUsers,
+    'totalProducts': _summary.totalProducts,
+    'totalOrders': _summary.totalOrders,
+    'ordersPending': _summary.ordersPending,
+    'lowStockCount': _summary.lowStockCount,
+    'revenueToday': _summary.revenueToday,
+    'revenueMonth': _summary.revenueMonth,
+    'recentOrders': _summary.recentOrders
+        .map(
+          (e) => {
+            'id': e.id,
+            'code': e.code,
+            'customer': e.customer,
+            'items': e.items,
+            'total': e.total,
+            'status': e.status,
+          },
+        )
+        .toList(),
+    'topProducts': _summary.topProducts
+        .map((e) => {'name': e.name, 'sold': e.sold, 'revenue': e.revenue})
+        .toList(),
+    'lowStock': _summary.lowStockItems
+        .map((e) => {'name': e.name, 'stock': e.stock, 'minStock': e.minStock})
+        .toList(),
+  };
 
   void _openAiSheet() {
     showModalBottomSheet(
@@ -179,9 +173,13 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 ),
                 Row(
                   children: [
-                    const Text('Asistente IA',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800)),
+                    const Text(
+                      'Asistente IA',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const Spacer(),
                     if (_aiLoading)
                       const SizedBox(
@@ -212,12 +210,14 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                 TextField(
                   controller: controller,
                   decoration: InputDecoration(
-                    hintText:
-                        'Pregúntale a la IA (ej: ¿qué cambió vs ayer?)',
-                    suffixIcon:
-                        IconButton(icon: const Icon(Icons.send), onPressed: _ask),
+                    hintText: 'Pregúntale a la IA (ej: ¿qué cambió vs ayer?)',
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: _ask,
+                    ),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -228,13 +228,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
                   ),
                 if (_aiIssues.isNotEmpty) ...[
                   const Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text('Irregularidades:',
-                          style: TextStyle(fontWeight: FontWeight.w800))),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Irregularidades:',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   for (final i in _aiIssues)
-                    Align(
-                        alignment: Alignment.centerLeft, child: Text('• $i')),
+                    Align(alignment: Alignment.centerLeft, child: Text('• $i')),
                 ],
                 if (_aiAnswer != null)
                   Align(
@@ -261,76 +263,84 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         child: _loading
             ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
             : _error != null
-                ? ListView(
-                    children: [
-                      const SizedBox(height: 32),
-                      Icon(Icons.warning_amber_rounded,
-                          size: 48, color: Palette.statsWarning),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: Text(
-                          _error!,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 16),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Center(
-                        child: TextButton.icon(
-                          onPressed: _load,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Reintentar'),
-                        ),
-                      ),
-                    ],
-                  )
-                : ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    children: [
-                      const _SectionTitle(
-                        title: 'Resumen',
-                        subtitle: 'Métricas principales para administrar',
-                      ),
-                      const SizedBox(height: 8),
-                      _KpiGrid(summary: _summary),
-                      const SizedBox(height: 16),
-                      LayoutBuilder(
-                        builder: (context, c) {
-                          final isWide = c.maxWidth >= 920;
-                          if (isWide) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _RecentOrdersCard(
-                                      orders: _summary.recentOrders),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _TopProductsCard(
-                                      items: _summary.topProducts),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _LowStockCard(
-                                      items: _summary.lowStockItems),
-                                ),
-                              ],
-                            );
-                          }
-                          return Column(
-                            children: [
-                              _RecentOrdersCard(orders: _summary.recentOrders),
-                              const SizedBox(height: 16),
-                              _TopProductsCard(items: _summary.topProducts),
-                              const SizedBox(height: 16),
-                              _LowStockCard(items: _summary.lowStockItems),
-                            ],
-                          );
-                        },
-                      ),
-                    ],
+            ? ListView(
+                children: [
+                  const SizedBox(height: 32),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 48,
+                    color: Palette.statsWarning,
                   ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      _error!,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: _load,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Reintentar'),
+                    ),
+                  ),
+                ],
+              )
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                children: [
+                  const _SectionTitle(
+                    title: 'Resumen',
+                    subtitle: 'Métricas principales para administrar',
+                  ),
+                  const SizedBox(height: 8),
+                  _KpiGrid(summary: _summary),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, c) {
+                      final isWide = c.maxWidth >= 920;
+                      if (isWide) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _RecentOrdersCard(
+                                orders: _summary.recentOrders,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _TopProductsCard(
+                                items: _summary.topProducts,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _LowStockCard(
+                                items: _summary.lowStockItems,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return Column(
+                        children: [
+                          _RecentOrdersCard(orders: _summary.recentOrders),
+                          const SizedBox(height: 16),
+                          _TopProductsCard(items: _summary.topProducts),
+                          const SizedBox(height: 16),
+                          _LowStockCard(items: _summary.lowStockItems),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAiSheet,
@@ -356,17 +366,21 @@ class _SectionTitle extends StatelessWidget {
       children: [
         const Icon(Icons.insights, color: Palette.primary),
         const SizedBox(width: 8),
-        Text(title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                )),
+        Text(
+          title,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
         const Spacer(),
         if (subtitle != null)
-          Text(subtitle!,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              )),
+          Text(
+            subtitle!,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
       ],
     );
   }
@@ -432,25 +446,27 @@ class _KpiGrid extends StatelessWidget {
       ),
     ];
 
-    return LayoutBuilder(builder: (context, c) {
-      final crossCount = c.maxWidth >= 1200
-          ? 4
-          : c.maxWidth >= 720
-              ? 3
-              : 2;
-      return GridView.builder(
-        itemCount: tiles.length,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: crossCount,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 2.2,
-        ),
-        itemBuilder: (_, i) => tiles[i],
-      );
-    });
+    return LayoutBuilder(
+      builder: (context, c) {
+        final crossCount = c.maxWidth >= 1200
+            ? 4
+            : c.maxWidth >= 720
+            ? 3
+            : 2;
+        return GridView.builder(
+          itemCount: tiles.length,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossCount,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 2.2,
+          ),
+          itemBuilder: (_, i) => tiles[i],
+        );
+      },
+    );
   }
 
   static String _fmt(num? n) => (n ?? 0).toStringAsFixed(0);
@@ -496,23 +512,25 @@ class _KpiTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w600,
-                      )),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 6),
                   Text(
                     value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          fontSize: small ? 16 : null,
-                          color: Palette.ink, 
-                        ),
+                      fontWeight: FontWeight.w800,
+                      fontSize: small ? 16 : null,
+                      color: Palette.ink,
+                    ),
                   ),
                 ],
               ),
@@ -537,13 +555,15 @@ class _RecentOrdersCard extends StatelessWidget {
           ? const _EmptyState(text: 'Sin órdenes recientes.')
           : Column(
               children: orders
-                  .map((o) => _TwoLineTile(
-                        leading: Icons.shopping_cart_checkout_rounded,
-                        title:
-                            '#${o.code ?? o.id?.toString() ?? '—'} • ${o.customer ?? 'Cliente'}',
-                        subtitle:
-                            '${o.items} ítems · Bs ${o.total.toStringAsFixed(2)} · ${o.status}',
-                      ))
+                  .map(
+                    (o) => _TwoLineTile(
+                      leading: Icons.shopping_cart_checkout_rounded,
+                      title:
+                          '#${o.code ?? o.id?.toString() ?? '—'} • ${o.customer ?? 'Cliente'}',
+                      subtitle:
+                          '${o.items} ítems · Bs ${o.total.toStringAsFixed(2)} · ${o.status}',
+                    ),
+                  )
                   .toList(),
             ),
     );
@@ -563,12 +583,14 @@ class _TopProductsCard extends StatelessWidget {
           ? const _EmptyState(text: 'Aún no hay productos destacados.')
           : Column(
               children: items
-                  .map((p) => _TwoLineTile(
-                        leading: Icons.star,
-                        title: p.name,
-                        subtitle:
-                            '${p.sold} vendidos · Bs ${p.revenue.toStringAsFixed(2)}',
-                      ))
+                  .map(
+                    (p) => _TwoLineTile(
+                      leading: Icons.star,
+                      title: p.name,
+                      subtitle:
+                          '${p.sold} vendidos · Bs ${p.revenue.toStringAsFixed(2)}',
+                    ),
+                  )
                   .toList(),
             ),
     );
@@ -588,12 +610,14 @@ class _LowStockCard extends StatelessWidget {
           ? const _EmptyState(text: 'Sin alertas de stock bajo.')
           : Column(
               children: items
-                  .map((i) => _TwoLineTile(
-                        leading: Icons.warning_amber_rounded,
-                        title: i.name,
-                        subtitle: 'Stock: ${i.stock} · Mínimo: ${i.minStock}',
-                        color: Palette.statsDanger,
-                      ))
+                  .map(
+                    (i) => _TwoLineTile(
+                      leading: Icons.warning_amber_rounded,
+                      title: i.name,
+                      subtitle: 'Stock: ${i.stock} · Mínimo: ${i.minStock}',
+                      color: Palette.statsDanger,
+                    ),
+                  )
                   .toList(),
             ),
     );
@@ -623,11 +647,12 @@ class _SectionCard extends StatelessWidget {
               children: [
                 Icon(icon, color: Palette.primary),
                 const SizedBox(width: 8),
-                Text(title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -663,11 +688,7 @@ class _TwoLineTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Text(
-        subtitle,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+      subtitle: Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
     );
   }
 }
@@ -721,17 +742,17 @@ class AdminSummary {
   });
 
   factory AdminSummary.empty() => const AdminSummary(
-        totalUsers: 0,
-        totalProducts: 0,
-        totalOrders: 0,
-        ordersPending: 0,
-        lowStockCount: 0,
-        revenueToday: 0,
-        revenueMonth: 0,
-        recentOrders: [],
-        topProducts: [],
-        lowStockItems: [],
-      );
+    totalUsers: 0,
+    totalProducts: 0,
+    totalOrders: 0,
+    ordersPending: 0,
+    lowStockCount: 0,
+    revenueToday: 0,
+    revenueMonth: 0,
+    recentOrders: [],
+    topProducts: [],
+    lowStockItems: [],
+  );
 }
 
 class RecentOrder {
@@ -762,7 +783,11 @@ class LowStockItem {
   final String name;
   final int stock;
   final int minStock;
-  LowStockItem({required this.name, required this.stock, required this.minStock});
+  LowStockItem({
+    required this.name,
+    required this.stock,
+    required this.minStock,
+  });
 }
 
 class AdminStatsService {
@@ -785,20 +810,28 @@ class AdminStatsService {
 
   Future<AdminSummary> _fallbackCalls() async {
     try {
-      final usersF    = http.get(Uri.parse('$baseUrl/admin/users/count'));
-      final prodsF    = http.get(Uri.parse('$baseUrl/admin/products/count'));
-      final ordersF   = http.get(Uri.parse('$baseUrl/admin/orders/count'));
-      final pendF     = http.get(Uri.parse('$baseUrl/admin/orders/pending'));
-      final lowCntF   = http.get(Uri.parse('$baseUrl/admin/stock/low/count'));
+      final usersF = http.get(Uri.parse('$baseUrl/admin/users/count'));
+      final prodsF = http.get(Uri.parse('$baseUrl/admin/products/count'));
+      final ordersF = http.get(Uri.parse('$baseUrl/admin/orders/count'));
+      final pendF = http.get(Uri.parse('$baseUrl/admin/orders/pending'));
+      final lowCntF = http.get(Uri.parse('$baseUrl/admin/stock/low/count'));
       final revTodayF = http.get(Uri.parse('$baseUrl/admin/revenue/today'));
       final revMonthF = http.get(Uri.parse('$baseUrl/admin/revenue/month'));
-      final recentF   = http.get(Uri.parse('$baseUrl/admin/orders/recent'));
-      final topF      = http.get(Uri.parse('$baseUrl/admin/products/top'));
-      final lowF      = http.get(Uri.parse('$baseUrl/admin/stock/low'));
+      final recentF = http.get(Uri.parse('$baseUrl/admin/orders/recent'));
+      final topF = http.get(Uri.parse('$baseUrl/admin/products/top'));
+      final lowF = http.get(Uri.parse('$baseUrl/admin/stock/low'));
 
       final res = await Future.wait([
-        usersF, prodsF, ordersF, pendF, lowCntF,
-        revTodayF, revMonthF, recentF, topF, lowF,
+        usersF,
+        prodsF,
+        ordersF,
+        pendF,
+        lowCntF,
+        revTodayF,
+        revMonthF,
+        recentF,
+        topF,
+        lowF,
       ]);
 
       int _count(http.Response r) {
@@ -878,13 +911,15 @@ class AdminStatsService {
     final j = (json is Map && json['data'] is Map) ? json['data'] : json;
 
     int _i(String a, [String? b, String? c]) {
-      final v = j[a] ?? (b != null ? j[b] : null) ?? (c != null ? j[c] : null) ?? 0;
+      final v =
+          j[a] ?? (b != null ? j[b] : null) ?? (c != null ? j[c] : null) ?? 0;
       if (v is num) return v.toInt();
       return int.tryParse('$v') ?? 0;
     }
 
     double _d(String a, [String? b, String? c]) {
-      final v = j[a] ?? (b != null ? j[b] : null) ?? (c != null ? j[c] : null) ?? 0;
+      final v =
+          j[a] ?? (b != null ? j[b] : null) ?? (c != null ? j[c] : null) ?? 0;
       if (v is num) return v.toDouble();
       return double.tryParse('$v') ?? 0.0;
     }
@@ -1002,7 +1037,8 @@ class AiDashboardService {
   }
 
   Future<AiIrregularities> analyzeIrregularities(
-      Map<String, dynamic> payload) async {
+    Map<String, dynamic> payload,
+  ) async {
     final uri = Uri.parse('$baseUrl/ai/dashboard/irregularities');
     final res = await http.post(
       uri,
@@ -1036,10 +1072,11 @@ class AiReport {
   final List<String> highlights;
   AiReport({required this.summary, required this.highlights});
   factory AiReport.fromJson(Map j) => AiReport(
-        summary: (j['summary'] ?? '').toString(),
-        highlights:
-            (j['highlights'] as List? ?? []).map((e) => e.toString()).toList(),
-      );
+    summary: (j['summary'] ?? '').toString(),
+    highlights: (j['highlights'] as List? ?? [])
+        .map((e) => e.toString())
+        .toList(),
+  );
 }
 
 class AiIrregularities {
@@ -1047,9 +1084,9 @@ class AiIrregularities {
   final Map<String, dynamic> fixes;
   AiIrregularities({required this.issues, required this.fixes});
   factory AiIrregularities.fromJson(Map j) => AiIrregularities(
-        issues: (j['issues'] as List? ?? []).map((e) => e.toString()).toList(),
-        fixes: ((j['fixes'] as Map? ?? const {}) as Map).cast<String, dynamic>(),
-      );
+    issues: (j['issues'] as List? ?? []).map((e) => e.toString()).toList(),
+    fixes: ((j['fixes'] as Map? ?? const {}) as Map).cast<String, dynamic>(),
+  );
 }
 
 /// Reglas locales por si el backend no responde (detección rápida + mini reporte)
@@ -1090,14 +1127,13 @@ class LocalAi {
       'fixes': {
         'recheckEndpoints': ['orders/count', 'revenue/today', 'revenue/month'],
         'consistencyQueries': ['SELECT ... COUNT(*)', 'SELECT ... SUM(total)'],
-      }
+      },
     };
   }
 
   static String report(Map<String, dynamic> d) {
     String money(num? n) => 'Bs ${((n ?? 0).toDouble()).toStringAsFixed(2)}';
-    return
-        'Resumen del día:\n'
+    return 'Resumen del día:\n'
         '- Usuarios: ${d['totalUsers']}\n'
         '- Productos: ${d['totalProducts']}\n'
         '- Órdenes: ${d['totalOrders']} (Pendientes: ${d['ordersPending']})\n'

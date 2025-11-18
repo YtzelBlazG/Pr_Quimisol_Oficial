@@ -1,4 +1,3 @@
-// lib/features/admin/pedidos/page/ciclos_entrega_page.dart
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -151,6 +150,27 @@ class _CiclosEntregaPageState extends State<CiclosEntregaPage> {
     }
   }
 
+  Future<void> _abrirAsignarRepartidores(Map<String, dynamic> ciclo) async {
+    final idciclo = int.tryParse(ciclo['idciclo']?.toString() ?? '');
+    if (idciclo == null) return;
+
+    final mes = int.tryParse(ciclo['mes']?.toString() ?? '');
+    final anio = int.tryParse(ciclo['anio']?.toString() ?? _anio.toString());
+    final titulo = (mes != null && anio != null)
+        ? '${_nombreMes(mes)} $anio'
+        : 'Ciclo $idciclo';
+
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => _AsignarRepartidoresDialog(
+        idciclo: idciclo,
+        baseUrl: _baseUrl,
+        tituloCiclo: titulo,
+      ),
+    );
+  }
+
   String _nombreMes(int mes) {
     const nombres = [
       '',
@@ -172,9 +192,8 @@ class _CiclosEntregaPageState extends State<CiclosEntregaPage> {
   }
 
   int _ultimoDiaMes(int anio, int mes) {
-    final inicioMesSiguiente = (mes == 12)
-        ? DateTime(anio + 1, 1, 1)
-        : DateTime(anio, mes + 1, 1);
+    final inicioMesSiguiente =
+        (mes == 12) ? DateTime(anio + 1, 1, 1) : DateTime(anio, mes + 1, 1);
     return inicioMesSiguiente.subtract(const Duration(days: 1)).day;
   }
 
@@ -218,7 +237,7 @@ class _CiclosEntregaPageState extends State<CiclosEntregaPage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Configura el día de entrega de pedidos para cada mes del año.',
+                                  'Configura el día de entrega de pedidos para cada mes del año y asigna repartidores.',
                                   style: textTheme.bodyMedium?.copyWith(
                                     color: Colors.grey[700],
                                   ),
@@ -333,10 +352,9 @@ class _CiclosEntregaPageState extends State<CiclosEntregaPage> {
       crossAxisCount = 1;
     }
 
-    // 👉 bajamos un poco el aspectRatio cuando hay más columnas
     double childAspectRatio;
     if (crossAxisCount >= 4) {
-      childAspectRatio = 0.9; // más alto
+      childAspectRatio = 0.9;
     } else if (crossAxisCount == 3) {
       childAspectRatio = 1.0;
     } else if (crossAxisCount == 2) {
@@ -474,7 +492,6 @@ class _CiclosEntregaPageState extends State<CiclosEntregaPage> {
                           fontSize: 12,
                         ),
                       ),
-                      // 👇 un poco más pequeño
                       rowHeight: 24,
                       daysOfWeekHeight: 18,
                       selectedDayPredicate: (day) =>
@@ -508,7 +525,7 @@ class _CiclosEntregaPageState extends State<CiclosEntregaPage> {
                       ? null
                       : () => _actualizarCiclo(mes),
                   icon: const Icon(Icons.save_outlined, size: 18),
-                  label: const Text('Actualizar'),
+                  label: const Text('Actualizar fecha'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Palette.primary,
                     foregroundColor: Colors.white,
@@ -518,10 +535,292 @@ class _CiclosEntregaPageState extends State<CiclosEntregaPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 36,
+                child: OutlinedButton.icon(
+                  onPressed: ciclo == null || ciclo.isEmpty
+                      ? null
+                      : () => _abrirAsignarRepartidores(ciclo),
+                  icon: const Icon(Icons.people_alt_outlined, size: 18),
+                  label: const Text('Asignar repartidores'),
+                ),
+              ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+// =================== DIALOG: ASIGNAR REPARTIDORES =======================
+
+class _AsignarRepartidoresDialog extends StatefulWidget {
+  final int idciclo;
+  final String baseUrl;
+  final String tituloCiclo;
+
+  const _AsignarRepartidoresDialog({
+    required this.idciclo,
+    required this.baseUrl,
+    required this.tituloCiclo,
+  });
+
+  @override
+  State<_AsignarRepartidoresDialog> createState() =>
+      _AsignarRepartidoresDialogState();
+}
+
+class _AsignarRepartidoresDialogState
+    extends State<_AsignarRepartidoresDialog> {
+  bool _loading = true;
+  bool _saving = false;
+  String _error = '';
+  List<Map<String, dynamic>> _repartidores = [];
+  final Set<int> _seleccionados = <int>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = '';
+    });
+
+    try {
+      final uriAll =
+          Uri.parse('${widget.baseUrl}/ciclos-entrega/repartidores');
+      final uriAsignados = Uri.parse(
+          '${widget.baseUrl}/ciclos-entrega/${widget.idciclo}/repartidores');
+
+      final respAll = await http.get(
+        uriAll,
+        headers: const {'Content-Type': 'application/json'},
+      );
+      if (respAll.statusCode != 200) {
+        throw Exception('Error al cargar repartidores (${respAll.statusCode})');
+      }
+      final dataAll = jsonDecode(respAll.body);
+      final List<Map<String, dynamic>> repartidores = (dataAll as List)
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+      final respAsignados = await http.get(
+        uriAsignados,
+        headers: const {'Content-Type': 'application/json'},
+      );
+      if (respAsignados.statusCode == 200) {
+        final dataAsignados = jsonDecode(respAsignados.body);
+        if (dataAsignados is List) {
+          _seleccionados
+            ..clear()
+            ..addAll(
+              dataAsignados
+                  .map((e) => int.tryParse(e.toString()))
+                  .whereType<int>(),
+            );
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _repartidores = repartidores;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
+    }
+  }
+
+  Future<void> _guardar() async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+    });
+
+    try {
+      final uri = Uri.parse(
+          '${widget.baseUrl}/ciclos-entrega/${widget.idciclo}/repartidores');
+      final resp = await http.put(
+        uri,
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'repartidores_ids': _seleccionados.toList(),
+        }),
+      );
+
+      if (!mounted) return;
+
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error al guardar asignación (${resp.statusCode}): ${resp.body}',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('Repartidores asignados al ciclo ${widget.tituloCiclo} ✅'),
+          ),
+        );
+        Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar asignación: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_error.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Error: $_error',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
+
+    if (_repartidores.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Text(
+            'No hay repartidores activos registrados.\nCrea usuarios con rol "repartidor".',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      itemCount: _repartidores.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final r = _repartidores[index];
+        final id = int.tryParse(r['idusuario']?.toString() ?? '');
+        final nombre = (r['nombre'] ?? '').toString();
+        final apellido = (r['apellido'] ?? '').toString();
+        final correo = (r['correo'] ?? '').toString();
+        final fullName =
+            '${nombre.trim()} ${apellido.trim()}'.trim().isEmpty
+                ? 'Usuario #$id'
+                : '${nombre.trim()} ${apellido.trim()}'.trim();
+
+        final seleccionado = id != null && _seleccionados.contains(id);
+
+        return CheckboxListTile(
+          value: seleccionado,
+          onChanged: (v) {
+            if (id == null) return;
+            setState(() {
+              if (v == true) {
+                _seleccionados.add(id);
+              } else {
+                _seleccionados.remove(id);
+              }
+            });
+          },
+          title: Text(fullName),
+          subtitle: correo.isNotEmpty ? Text(correo) : null,
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      titlePadding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+      contentPadding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      title: Row(
+        children: [
+          const Icon(Icons.people_alt_outlined, color: Palette.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Asignar repartidores a ${widget.tituloCiclo}',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.close),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 600,
+        height: 400,
+        child: _buildBody(),
+      ),
+      actions: [
+        TextButton.icon(
+          onPressed: _saving ? null : _load,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Recargar'),
+        ),
+        const Spacer(),
+        ElevatedButton.icon(
+          onPressed: _saving || _repartidores.isEmpty ? null : _guardar,
+          icon: _saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.save_outlined),
+          label: Text(_saving ? 'Guardando...' : 'Guardar'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Palette.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -24,6 +24,8 @@ import 'package:quimisol/features/admin/productos/page/producto_edit_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_create_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart';
+import 'package:quimisol/features/distributor/distributor_map/screens/location_route_page.dart';
+
 import 'package:quimisol/features/distributor/home/screens/home_distributor_page.dart';
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
@@ -72,7 +74,6 @@ import 'package:quimisol/features/admin/categorias/controllers/categoria_control
 // ====== SERVICE CATEGORÍAS ======
 import 'package:quimisol/core/services/postgresql/categorias/categoria_service.dart';
 import 'package:quimisol/features/public/favoritos/favoritos_page.dart';
-
 
 // ============================================================
 // ==  CONFIG
@@ -124,6 +125,17 @@ class AppModule extends Module {
 
     // Repartidor
     r.child('/home-repartidor', child: (_) => const HomeRepartidorPage());
+
+    // Ruta mapa: desde mi ubicación actual hasta la ubicación seleccionada
+    r.child('/location-route', child: (_) {
+      final data = Modular.args.data as Map<String, dynamic>;
+      return LocationRoutePage(
+        idubicacion: data['idubicacion'] as int,
+        nombre: (data['nombre'] ?? '') as String,
+        latitud: (data['latitud'] as num).toDouble(),
+        longitud: (data['longitud'] as num).toDouble(),
+      );
+    });
 
     // Locations
     r.child(

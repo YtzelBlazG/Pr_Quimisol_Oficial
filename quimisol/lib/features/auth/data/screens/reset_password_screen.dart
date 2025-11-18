@@ -25,7 +25,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscure2 = true;
 
   // 🔧 AJUSTA el baseUrl según tu entorno
-  final _svc = MailRecoveryService(baseUrl: 'http://localhost:3005');
+  final _svc = MailRecoveryService(baseUrl: 'http://192.168.213.85:3005');
 
   bool _saving = false;
 
@@ -49,7 +49,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (!_match) return;
     setState(() => _saving = true);
     try {
-      await _svc.resetPassword(widget.email, widget.code, _passCtrl.text.trim());
+      await _svc.resetPassword(
+        widget.email,
+        widget.code,
+        _passCtrl.text.trim(),
+      );
       if (!mounted) return;
       Navigator.pop(context); // volver a la pantalla anterior (login o request)
       _snack('Contraseña actualizada');
@@ -116,7 +120,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: 'Confirmar contraseña',
-                    prefixIcon: const Icon(Icons.lock_outline, color: Palette.primary),
+                    prefixIcon: const Icon(
+                      Icons.lock_outline,
+                      color: Palette.primary,
+                    ),
                     suffixIcon: IconButton(
                       onPressed: () => setState(() => _obscure2 = !_obscure2),
                       icon: Icon(
@@ -140,7 +147,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        _match ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden',
+                        _match
+                            ? 'Las contraseñas coinciden'
+                            : 'Las contraseñas no coinciden',
                         style: TextStyle(
                           color: _match ? Colors.green[700] : Colors.red[700],
                         ),
@@ -166,12 +175,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 OutlinedButton(
                   onPressed: _saving ? null : () => Navigator.pop(context),
                   style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                     side: const BorderSide(color: Palette.primary),
                   ),
                   child: const Text(
                     'Volver',
-                    style: TextStyle(color: Palette.primary, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: Palette.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],

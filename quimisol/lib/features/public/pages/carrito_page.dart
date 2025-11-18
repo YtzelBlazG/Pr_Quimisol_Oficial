@@ -33,7 +33,7 @@ class _CarritoPageState extends State<CarritoPage> {
         return;
       }
 
-      final url = Uri.parse('http://localhost:3005/carrito/$idUsuario');
+      final url = Uri.parse('http://192.168.213.85:3005/carrito/$idUsuario');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -72,7 +72,7 @@ class _CarritoPageState extends State<CarritoPage> {
     final idUsuario = await AuthStorage.getIdPersona();
     if (idUsuario == null) return;
     final url = Uri.parse(
-      'http://localhost:3005/carrito/$idUsuario/$idProducto',
+      'http://192.168.213.85:3005/carrito/$idUsuario/$idProducto',
     );
     final response = await http.delete(url);
 
@@ -126,7 +126,9 @@ class _CarritoPageState extends State<CarritoPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Pedido creado y ubicaciones guardadas correctamente ✅'),
+            content: Text(
+              'Pedido creado y ubicaciones guardadas correctamente ✅',
+            ),
           ),
         );
 
@@ -154,86 +156,85 @@ class _CarritoPageState extends State<CarritoPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _productosAgrupados.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Tu carrito está vacío'),
-                      const SizedBox(height: 12),
-                      IconButton.filled(
-                        onPressed: () => Modular.to.pushNamed('/pedidos'),
-                        icon: const Icon(Icons.receipt_long),
-                        style: IconButton.styleFrom(
-                          backgroundColor: Palette.button,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Tu carrito está vacío'),
+                  const SizedBox(height: 12),
+                  IconButton.filled(
+                    onPressed: () => Modular.to.pushNamed('/pedidos'),
+                    icon: const Icon(Icons.receipt_long),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Palette.button,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _productosAgrupados.length,
-                  itemBuilder: (context, index) {
-                    final producto = _productosAgrupados[index];
-                    final precio =
-                        double.tryParse(producto['precio'].toString()) ?? 0.0;
-                    final cantidad =
-                        int.tryParse(producto['cantidad'].toString()) ?? 0;
-                    final subtotal = precio * cantidad;
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _productosAgrupados.length,
+              itemBuilder: (context, index) {
+                final producto = _productosAgrupados[index];
+                final precio =
+                    double.tryParse(producto['precio'].toString()) ?? 0.0;
+                final cantidad =
+                    int.tryParse(producto['cantidad'].toString()) ?? 0;
+                final subtotal = precio * cantidad;
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 2,
-                      child: ListTile(
-                        leading: producto['imagen'] != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  producto['imagen'],
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.image_not_supported,
-                                    size: 50,
-                                  ),
-                                ),
-                              )
-                            : const Icon(Icons.image_not_supported, size: 50),
-                        title: Text(
-                          producto['nombre'] ?? 'Producto sin nombre',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Cantidad: $cantidad'),
-                            Text(
-                              'Precio unitario: ${precio.toStringAsFixed(2)} Bs',
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                  child: ListTile(
+                    leading: producto['imagen'] != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              producto['imagen'],
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.image_not_supported,
+                                size: 50,
+                              ),
                             ),
-                            Text(
-                              'Subtotal: ${subtotal.toStringAsFixed(2)} Bs',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () =>
-                              _eliminarProducto(producto['idproducto']),
-                        ),
+                          )
+                        : const Icon(Icons.image_not_supported, size: 50),
+                    title: Text(
+                      producto['nombre'] ?? 'Producto sin nombre',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Cantidad: $cantidad'),
+                        Text(
+                          'Precio unitario: ${precio.toStringAsFixed(2)} Bs',
+                        ),
+                        Text(
+                          'Subtotal: ${subtotal.toStringAsFixed(2)} Bs',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () =>
+                          _eliminarProducto(producto['idproducto']),
+                    ),
+                  ),
+                );
+              },
+            ),
       bottomNavigationBar: _productosAgrupados.isEmpty
           ? null
           : Container(
