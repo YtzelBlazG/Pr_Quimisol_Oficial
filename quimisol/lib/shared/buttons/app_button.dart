@@ -6,7 +6,6 @@ class AppButton extends StatelessWidget {
   final bool isLoading;
   final IconData? icon;
   
-
   const AppButton({
     super.key,
     required this.label,

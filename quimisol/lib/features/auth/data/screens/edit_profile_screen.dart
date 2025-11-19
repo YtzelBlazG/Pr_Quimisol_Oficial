@@ -180,7 +180,7 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_idPersona != null) {
       try {
         await _locationsService.createLocation(
-          idUsuario: _idPersona!,
+          idPersona: _idPersona!,
           nombre: nombre,
           ciudad: ciudad,
           direccion: direccion,

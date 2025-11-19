@@ -3,16 +3,20 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/core/storage/auth_storage.dart';
 
-// Pantallas
+// Pantallas principales
 import 'package:quimisol/features/admin/presentation/screens/admin_user_page.dart';
-import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_page.dart'
-    hide Palette;
+import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_page.dart';
 import 'package:quimisol/features/auth/data/screens/profile_screen.dart';
+import 'package:quimisol/features/admin/roles/pages/rol_create_page.dart';
 
-// CRUD: Productos, Unidades, DetalleProducto
+// CRUDs
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_list_page.dart';
+import 'package:quimisol/features/admin/categorias/page/categoria_list_page.dart';
+
+// TopBar
+import 'package:quimisol/features/admin/widgets/top_bar.dart';
 
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
@@ -21,27 +25,15 @@ class AdminPage extends StatefulWidget {
   State<AdminPage> createState() => _AdminPageState();
 }
 
-class _AdminPageState extends State<AdminPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
+class _AdminPageState extends State<AdminPage> {
   String? _userName;
   String? _userEmail;
   bool _loadingUser = true;
-
-  final List<Tab> _tabs = const [
-    Tab(icon: Icon(Icons.dashboard), text: "Dashboard"),
-    Tab(icon: Icon(Icons.people), text: "Usuarios"),
-    Tab(icon: Icon(Icons.shopping_bag), text: "Productos"),
-    Tab(icon: Icon(Icons.shopping_bag), text: "Unidades"),
-    Tab(icon: Icon(Icons.shopping_bag), text: "Detalle Productos"),
-    Tab(icon: Icon(Icons.settings), text: "Configuración"),
-  ];
+  String _currentRoute = '/dashboard';
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _tabs.length, vsync: this);
     _loadUser();
   }
 
@@ -51,17 +43,10 @@ class _AdminPageState extends State<AdminPage>
     if (!mounted) return;
     setState(() {
       _userName = (name ?? '').trim().isEmpty ? 'Usuario' : name!.trim();
-      _userEmail = (email ?? '').trim().isEmpty
-          ? 'sin_correo@ejemplo.com'
-          : email!.trim();
+      _userEmail =
+          (email ?? '').trim().isEmpty ? 'sin_correo@ejemplo.com' : email!.trim();
       _loadingUser = false;
     });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -69,11 +54,24 @@ class _AdminPageState extends State<AdminPage>
     Modular.to.pushReplacementNamed('/auth/login');
   }
 
-  void _goToTab(int index) {
-    _tabController.index = index;
-    Navigator.of(context).maybePop();
-    setState(() {});
+  // Maneja la navegación interna sin recargar todo el Scaffold
+  void _handleNavigation(String route) {
+    if (route == '/logout') {
+      _logout(context);
+      return;
+    }
+    if (route == '/perfil') {
+      _openProfile();
+      return;
+    }
+
+    // Evita recargar si ya estás en la misma vista
+    if (_currentRoute == route) return;
+
+    // Actualiza solo la vista interna
+    setState(() => _currentRoute = route);
   }
+
 
   void _openProfile() {
     Navigator.of(context).maybePop();
@@ -88,52 +86,13 @@ class _AdminPageState extends State<AdminPage>
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      appBar: AppBar(
-        title: const Text("Panel de Administración"),
-        backgroundColor: Palette.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: "Cerrar Sesión",
-            onPressed: () => _logout(context),
-          ),
-        ],
-      ),
+      appBar: AdminTopBar(onNavigate: _handleNavigation),
       drawer: _buildDrawer(context),
-      body: Column(
-        children: [
-          Material(
-            color: Theme.of(context).cardColor,
-            child: TabBar(
-              controller: _tabController,
-              tabs: _tabs,
-              labelColor: Palette.primary,
-              indicatorColor: Palette.primary,
-              unselectedLabelColor: Colors.black54,
-            ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                const AdminDashboardPage(),         // index 0
-                const AdminUserPage(),              // index 1
-                const ProductoListPage(),           // index 2
-                const UnidadListPage(),             // index 3
-                const DetalleProductoListPage(),    // index 4
-                _buildConfiguracion(context),       // index 5
-              ],
-            ),
-          ),
-        ],
-      ),
+      body: _buildContent(),
     );
   }
 
   Drawer _buildDrawer(BuildContext context) {
-    final current = _tabController.index;
-
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -164,42 +123,51 @@ class _AdminPageState extends State<AdminPage>
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+
+            // === Navegación principal ===
             _DrawerItem(
               icon: Icons.dashboard,
               text: "Dashboard",
-              selected: current == 0,
-              onTap: () => _goToTab(0),
+              selected: _currentRoute == '/dashboard',
+              onTap: () => _handleNavigation('/dashboard'),
             ),
             _DrawerItem(
               icon: Icons.people,
               text: "Usuarios",
-              selected: current == 1,
-              onTap: () => _goToTab(1),
+              selected: _currentRoute == '/usuarios',
+              onTap: () => _handleNavigation('/usuarios'),
             ),
             _DrawerItem(
               icon: Icons.shopping_bag,
               text: "Productos",
-              selected: current == 2,
-              onTap: () => _goToTab(2),
+              selected: _currentRoute == '/productos',
+              onTap: () => _handleNavigation('/productos'),
             ),
             _DrawerItem(
-              icon: Icons.shopping_bag,
+              icon: Icons.category,
+              text: "Categorías",
+              selected: _currentRoute == '/categorias',
+              onTap: () => _handleNavigation('/categorias'),
+            ),
+            _DrawerItem(
+              icon: Icons.grid_view,
               text: "Unidades",
-              selected: current == 3,
-              onTap: () => _goToTab(3),
+              selected: _currentRoute == '/unidades',
+              onTap: () => _handleNavigation('/unidades'),
             ),
             _DrawerItem(
-              icon: Icons.shopping_bag,
+              icon: Icons.list_alt,
               text: "Detalle Productos",
-              selected: current == 4,
-              onTap: () => _goToTab(4),
+              selected: _currentRoute == '/detalleproducto',
+              onTap: () => _handleNavigation('/detalleproducto'),
             ),
             _DrawerItem(
               icon: Icons.settings,
               text: "Configuración",
-              selected: current == 5,
-              onTap: () => _goToTab(5),
+              selected: _currentRoute == '/configuracion',
+              onTap: () => _handleNavigation('/configuracion'),
             ),
+
             const Divider(),
             _DrawerItem(
               icon: Icons.person_outline,
@@ -227,16 +195,35 @@ class _AdminPageState extends State<AdminPage>
     );
   }
 
-  Widget _buildConfiguracion(BuildContext context) {
-    return Center(
-      child: Text(
-        "⚙️ Configuración del Sistema",
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
-            ),
-      ),
-    );
+  Widget _buildContent() {
+    switch (_currentRoute) {
+      case '/dashboard':
+        return const AdminDashboardPage();
+      case '/usuarios':
+        return const AdminUserPage();
+      case '/usuarios/roles':
+        return const RolCreatePage();
+      case '/productos':
+        return const ProductoListPage();
+      case '/categorias':
+        return const CategoriaListPage();
+      case '/unidades':
+        return const UnidadListPage();
+      case '/detalleproducto':
+        return const DetalleProductoListPage();
+      case '/configuracion':
+        return Center(
+          child: Text(
+            "⚙️ Configuración del Sistema",
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        );
+      default:
+        return const AdminDashboardPage();
+    }
   }
 }
 

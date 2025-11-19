@@ -1,23 +1,10 @@
-// admin_dashboard_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-/* ===========================
- *  Paleta
- * =========================== */
-class Palette {
-  static const primary = Color(0xFF2563EB);
-  static const green = Color(0xFF16A34A);
-  static const orange = Color(0xFFF59E0B);
-  static const red = Color(0xFFDC2626);
-  static const slate = Color(0xFF0F172A);
-}
+import 'package:quimisol/core/theme/palette.dart';
 
-/* ===========================
- *  Página
- * =========================== */
-
+// Página principal del dashboard admin
 class AdminDashboardPage extends StatefulWidget {
   const AdminDashboardPage({super.key});
   @override
@@ -276,84 +263,76 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         child: _loading
             ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
             : _error != null
-            ? ListView(
-                children: [
-                  const SizedBox(height: 32),
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 48,
-                    color: Palette.orange,
-                  ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                ? ListView(
+                    children: [
+                      const SizedBox(height: 32),
+                      Icon(Icons.warning_amber_rounded,
+                          size: 48, color: Palette.statsWarning),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 16),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: _load,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Reintentar'),
+                        ),
+                      ),
+                    ],
+                  )
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                    children: [
+                      const _SectionTitle(
+                        title: 'Resumen',
+                        subtitle: 'Métricas principales para administrar',
+                      ),
+                      const SizedBox(height: 8),
+                      _KpiGrid(summary: _summary),
+                      const SizedBox(height: 16),
+                      LayoutBuilder(
+                        builder: (context, c) {
+                          final isWide = c.maxWidth >= 920;
+                          if (isWide) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _RecentOrdersCard(
+                                      orders: _summary.recentOrders),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _TopProductsCard(
+                                      items: _summary.topProducts),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _LowStockCard(
+                                      items: _summary.lowStockItems),
+                                ),
+                              ],
+                            );
+                          }
+                          return Column(
+                            children: [
+                              _RecentOrdersCard(orders: _summary.recentOrders),
+                              const SizedBox(height: 16),
+                              _TopProductsCard(items: _summary.topProducts),
+                              const SizedBox(height: 16),
+                              _LowStockCard(items: _summary.lowStockItems),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: _load,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Reintentar'),
-                    ),
-                  ),
-                ],
-              )
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                children: [
-                  const _SectionTitle(
-                    title: 'Resumen',
-                    subtitle: 'Métricas principales para administrar',
-                  ),
-                  const SizedBox(height: 8),
-                  _KpiGrid(summary: _summary),
-                  const SizedBox(height: 16),
-                  LayoutBuilder(
-                    builder: (context, c) {
-                      final isWide = c.maxWidth >= 920;
-                      if (isWide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _RecentOrdersCard(
-                                orders: _summary.recentOrders,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _TopProductsCard(
-                                items: _summary.topProducts,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: _LowStockCard(
-                                items: _summary.lowStockItems,
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-                      return Column(
-                        children: [
-                          _RecentOrdersCard(orders: _summary.recentOrders),
-                          const SizedBox(height: 16),
-                          _TopProductsCard(items: _summary.topProducts),
-                          const SizedBox(height: 16),
-                          _LowStockCard(items: _summary.lowStockItems),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAiSheet,
@@ -428,7 +407,7 @@ class _KpiGrid extends StatelessWidget {
         icon: Icons.attach_money_rounded,
         label: 'Ingresos hoy',
         value: _money(summary.revenueToday),
-        color: Palette.green,
+        color: Palette.statsSuccess,
       ),
       _KpiTile(
         icon: Icons.calendar_month_rounded,
@@ -440,13 +419,13 @@ class _KpiGrid extends StatelessWidget {
         icon: Icons.pending_actions_rounded,
         label: 'Pendientes',
         value: _fmt(summary.ordersPending),
-        color: Palette.orange,
+        color: Palette.statsWarning,
       ),
       _KpiTile(
         icon: Icons.inventory_2_rounded,
         label: 'Stock bajo',
         value: _fmt(summary.lowStockCount),
-        color: Palette.red,
+        color: Palette.statsDanger,
       ),
       _KpiTile(
         icon: Icons.star_rate_rounded,
@@ -540,9 +519,10 @@ class _KpiTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: small ? 16 : null,
-                    ),
+                          fontWeight: FontWeight.w800,
+                          fontSize: small ? 16 : null,
+                          color: Palette.ink, 
+                        ),
                   ),
                 ],
               ),
@@ -622,14 +602,12 @@ class _LowStockCard extends StatelessWidget {
           ? const _EmptyState(text: 'Sin alertas de stock bajo.')
           : Column(
               children: items
-                  .map(
-                    (i) => _TwoLineTile(
-                      leading: Icons.warning_amber_rounded,
-                      title: i.name,
-                      subtitle: 'Stock: ${i.stock} · Mínimo: ${i.minStock}',
-                      color: Palette.red,
-                    ),
-                  )
+                  .map((i) => _TwoLineTile(
+                        leading: Icons.warning_amber_rounded,
+                        title: i.name,
+                        subtitle: 'Stock: ${i.stock} · Mínimo: ${i.minStock}',
+                        color: Palette.statsDanger,
+                      ))
                   .toList(),
             ),
     );
@@ -693,7 +671,7 @@ class _TwoLineTile extends StatelessWidget {
     return ListTile(
       dense: true,
       contentPadding: EdgeInsets.zero,
-      leading: Icon(leading, color: color ?? Palette.slate),
+      leading: Icon(leading, color: color ?? Palette.statsNeutral),
       title: Text(
         title,
         style: const TextStyle(fontWeight: FontWeight.w700),

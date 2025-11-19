@@ -1,195 +1,106 @@
+// lib/features/admin/productos/presentation/pages/producto_create_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:quimisol/core/services/postgresql/productos/producto_service.dart';
-import 'package:quimisol/core/services/postgresql/unidades/unidad_service.dart';
-import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
+import 'package:quimisol/core/theme/palette.dart';
+import '../widgets/producto_formulario.dart';
 
-
-
-class ProductoCreatePage extends StatefulWidget {
+class ProductoCreatePage extends StatelessWidget {
   const ProductoCreatePage({super.key});
 
   @override
-  State<ProductoCreatePage> createState() => _ProductoCreatePageState();
-}
-
-class _ProductoCreatePageState extends State<ProductoCreatePage> {
-  final _formKey = GlobalKey<FormState>();
-
-  final _codigoCtrl = TextEditingController();
-  final _nombreCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  final _imgCtrl = TextEditingController();
-  final _precioCtrl = TextEditingController();
-
-  final ProductoService _productoService = ProductoService();
-  final UnidadService _unidadService = UnidadService();
-
-  int? _idUnidad;
-  List<Map<String, dynamic>> _unidades = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUnidades();
-    _imgCtrl.addListener(() => setState(() {}));
-  }
-
-  Future<void> _loadUnidades() async {
-    final data = await _unidadService.obtenerUnidades();
-    setState(() {
-      _unidades = data.map((u) => {
-            'idunidad': u.id,
-            'nombre': u.nombre,
-          }).toList();
-    });
-  }
-
-  Future<void> _crearProducto() async {
-    if (_formKey.currentState!.validate() && _idUnidad != null) {
-      final nuevoProducto = Producto(
-        codigo: _codigoCtrl.text.trim(),
-        nombre: _nombreCtrl.text.trim(),
-        descripcion: _descCtrl.text.trim(),
-        idunidad: _idUnidad!,
-        imagen: _imgCtrl.text.trim().isNotEmpty ? _imgCtrl.text.trim() : null,
-        precio: double.parse(_precioCtrl.text.trim()),
-      );
-
-      await _productoService.createProducto(nuevoProducto);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Producto creado exitosamente')),
-      );
-      Modular.to.pop();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ Completa todos los campos')),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _codigoCtrl.dispose();
-    _nombreCtrl.dispose();
-    _descCtrl.dispose();
-    _imgCtrl.dispose();
-    _precioCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Crear Producto")),
-      body: Center(
-        child: Card(
-          elevation: 6,
-          margin: const EdgeInsets.all(24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-            child: SizedBox(
-              width: 500,
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Nuevo producto',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.purple,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextFormField(
-                      controller: _codigoCtrl,
-                      decoration: const InputDecoration(labelText: 'Código'),
-                      validator: (value) => value == null || value.isEmpty ? 'Ingrese el código' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _nombreCtrl,
-                      decoration: const InputDecoration(labelText: 'Nombre'),
-                      validator: (value) => value == null || value.isEmpty ? 'Ingrese el nombre' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _descCtrl,
-                      decoration: const InputDecoration(labelText: 'Descripción'),
-                      validator: (value) => value == null || value.isEmpty ? 'Ingrese la descripción' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<int>(
-                      value: _idUnidad,
-                      items: _unidades
-                          .map((u) => DropdownMenuItem<int>(
-                                value: u['idunidad'],
-                                child: Text(u['nombre']),
-                              ))
-                          .toList(),
-                      decoration: const InputDecoration(labelText: 'Unidad'),
-                      onChanged: (value) => setState(() => _idUnidad = value),
-                      validator: (value) => value == null ? 'Seleccione una unidad' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _precioCtrl,
-                      decoration: const InputDecoration(labelText: 'Precio'),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) return 'Ingrese el precio';
-                        final parsed = double.tryParse(value);
-                        if (parsed == null || parsed < 0) return 'Precio inválido';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _imgCtrl,
-                      decoration: const InputDecoration(labelText: 'URL de imagen'),
-                    ),
-                    const SizedBox(height: 16),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final cardWidth = isMobile ? screenWidth * 0.9 : 900.0;
 
-                    /// ✅ Vista previa con manejo de error elegante
-                    if (_imgCtrl.text.isNotEmpty)
-                      Column(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Palette.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, size: 26),
+          onPressed: () => Modular.to.pop(),
+        ),
+        title: const Text(
+          "Crear Producto",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900, minWidth: 400),
+          child: Card(
+            elevation: 16,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+            margin: EdgeInsets.symmetric(
+              horizontal: isMobile ? 16 : 32,
+              vertical: 24,
+            ),
+            color: const Color(0xFFF8F0FF),
+            child: SizedBox(
+              width: cardWidth,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 28 : 56,
+                  vertical: isMobile ? 36 : 44,
+                ),
+                child: Column(
+                  children: [
+                    // HEADER
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Column(
                         children: [
                           Container(
-                            width: 200,
-                            height: 200,
+                            width: 70,
+                            height: 70,
                             decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(12),
+                              color: Palette.primary.withOpacity(0.15),
+                              shape: BoxShape.circle,
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                _imgCtrl.text.trim(),
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, __, ___) => const Center(
-                                  child: Text('❌ No se pudo cargar la imagen'),
-                                ),
-                              ),
+                            child: const Icon(Icons.add_box, size: 40, color: Palette.primary),
+                          ),
+                          const SizedBox(height: 18),
+                          const Text(
+                            'Nuevo producto',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Palette.primary,
                             ),
                           ),
-                          const SizedBox(height: 12),
+                         /* const SizedBox(height: 8),
+                          Text(
+                            'Completa los datos para agregar un producto',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Palette.primary.withOpacity(0.75),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),*/
                         ],
                       ),
+                    ),
 
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.save),
-                      label: const Text('Guardar producto'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple,
-                        foregroundColor: Colors.white,
+                    const SizedBox(height: 27),
+
+                    // FORMULARIO CON SCROLL
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: ProductoFormulario(
+                          onSuccess: () {
+                            Modular.to.pop();
+                          },
+                        ),
                       ),
-                      onPressed: _crearProducto,
                     ),
                   ],
                 ),
