@@ -80,9 +80,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
       }
 
       _pedidos = data
-          .map<Map<String, dynamic>>(
-            (e) => Map<String, dynamic>.from(e as Map),
-          )
+          .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
           .toList();
 
       _loading = false;
@@ -173,7 +171,8 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
 
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_deg2rad(lat1)) *
             math.cos(_deg2rad(lat2)) *
             math.sin(dLon / 2) *
@@ -215,10 +214,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: _buildBody(),
-      ),
+      body: Padding(padding: const EdgeInsets.all(16), child: _buildBody()),
     );
   }
 
@@ -256,10 +252,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                   shape: const StadiumBorder(),
                 ),
                 icon: const Icon(Icons.refresh),
-                label: const Text(
-                  'Reintentar',
-                  style: TextStyle(fontSize: 16),
-                ),
+                label: const Text('Reintentar', style: TextStyle(fontSize: 16)),
               ),
             ),
           ],
@@ -382,10 +375,8 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
   Color _estadoColor(String estado) {
     switch (_normEstado(estado)) {
       case 'pedido':
-      case 'pendiente':
         return Colors.orange;
       case 'en_camino':
-      case 'en_ruta':
         return Colors.blue;
       case 'entregado':
         return Colors.green;
@@ -424,9 +415,9 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     final double baseTotal = double.tryParse((p['total'] ?? 0).toString()) ?? 0;
     final double totalConUbicaciones =
         double.tryParse(
-              (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
-            ) ??
-            baseTotal;
+          (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
+        ) ??
+        baseTotal;
 
     final int ubicacionesCount =
         int.tryParse((p['ubicaciones_count'] ?? 0).toString()) ?? 0;
@@ -490,10 +481,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                 if (ubicacionesCount > 0)
                   Text(
                     '$ubicacionesCount ubicación(es)',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
               ],
             ),
@@ -526,10 +514,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                     const SizedBox(width: 4),
                     Text(
                       '${distKm.toStringAsFixed(1)} km',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -575,7 +560,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
 
               final children = <Widget>[];
 
-              // DETALLES (tus tarjetas moradas)
+              // DETALLES
               if (det.isNotEmpty) {
                 children.addAll(
                   det.map((d) {
@@ -654,36 +639,52 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                     final ciudad = (u['ciudad'] ?? '').toString().trim();
                     final lat = u['latitud'];
                     final lng = u['longitud'];
+                    final estadoEntrega =
+                        (u['estado_entrega'] ?? 'pedido').toString();
+                    final esEntregada = estadoEntrega == 'entregado';
 
                     final distanciaKm = _distanceFromMe(lat, lng);
 
-                    // función local para reutilizar en onTap y en el botón Ver
-                    void _abrirUbicacion() {
+                    Future<void> _abrirUbicacion() async {
                       final idUbicacion = u['idubicacion'] ?? u['id'];
+                      if (idUbicacion == null) return;
 
-                      final latVal = u['latitud'];
-                      final lngVal = u['longitud'];
+                      // Navega a la pantalla de ruta
+                      await Modular.to.pushNamed(
+                        '/location-route',
+                        arguments: {
+                          'idubicacion': idUbicacion,
+                          'idPedido': id,
+                          'nombre': nombre,
+                          'latitud':
+                              double.tryParse(lat?.toString() ?? '0') ?? 0.0,
+                          'longitud':
+                              double.tryParse(lng?.toString() ?? '0') ?? 0.0,
+                        },
+                      );
 
-                      final double? latNum = latVal is num
-                          ? latVal.toDouble()
-                          : double.tryParse(latVal?.toString() ?? '');
-                      final double? lngNum = lngVal is num
-                          ? lngVal.toDouble()
-                          : double.tryParse(lngVal?.toString() ?? '');
-
-                      if (idUbicacion != null &&
-                          latNum != null &&
-                          lngNum != null) {
-                        Modular.to.pushNamed(
-                          '/location-route',
-                          arguments: {
-                            'idubicacion': idUbicacion,
-                            'nombre': nombre,
-                            'latitud': latNum,
-                            'longitud': lngNum,
-                          },
-                        );
+                      // Al volver, recargamos pedidos para refrescar estados
+                      if (mounted) {
+                        _cargarPedidos();
                       }
+                    }
+
+                    Color chipColor;
+                    Color chipText;
+                    String chipTextLabel;
+
+                    if (estadoEntrega == 'pedido') {
+                      chipColor = Colors.grey.shade100;
+                      chipText = Colors.grey.shade800;
+                      chipTextLabel = 'Pendiente';
+                    } else if (estadoEntrega == 'en_camino') {
+                      chipColor = Colors.blue.shade50;
+                      chipText = Colors.blue.shade700;
+                      chipTextLabel = 'En camino';
+                    } else {
+                      chipColor = Colors.green.shade50;
+                      chipText = Colors.green.shade700;
+                      chipTextLabel = 'Entregado';
                     }
 
                     return Container(
@@ -697,17 +698,43 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ListTile(
-                        onTap:
-                            _abrirUbicacion, // 👉 toda la tarjeta abre el mapa con ruta
+                        onTap: esEntregada ? null : () => _abrirUbicacion(),
                         leading: const CircleAvatar(
                           child: Icon(Icons.place, color: Colors.white),
                           backgroundColor: Colors.blue,
                         ),
-                        title: Text(
-                          nombre.isEmpty ? 'Ubicación' : nombre,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                nombre.isEmpty ? 'Ubicación' : nombre,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: chipColor,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                chipTextLabel,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: chipText,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -741,25 +768,56 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                                 ),
                               ),
                             const SizedBox(height: 4),
-                            ElevatedButton.icon(
-                              onPressed: _abrirUbicacion, // 👉 mismo handler
-                              icon: const Icon(Icons.map_outlined, size: 14),
-                              label: const Text(
-                                'Ver',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Palette.primary,
-                                foregroundColor: Colors.white,
+                            if (esEntregada)
+                              Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 10,
                                   vertical: 4,
                                 ),
-                                shape: const StadiumBorder(),
-                                elevation: 0,
-                                minimumSize: Size.zero,
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 16,
+                                      color: Colors.green.shade600,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Completado',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.green.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else
+                              ElevatedButton.icon(
+                                onPressed: () => _abrirUbicacion(),
+                                icon: const Icon(Icons.map_outlined, size: 14),
+                                label: const Text(
+                                  'Ver',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Palette.primary,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  shape: const StadiumBorder(),
+                                  elevation: 0,
+                                  minimumSize: Size.zero,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -769,8 +827,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
               } else {
                 children.add(
                   const Padding(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Text('Sin ubicaciones seleccionadas'),
                   ),
                 );

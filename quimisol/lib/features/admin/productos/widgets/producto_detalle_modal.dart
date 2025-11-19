@@ -41,7 +41,7 @@ class _ProductoDetalleModalState extends State<ProductoDetalleModal> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.213.85:3005/carrito'),
+        Uri.parse('http://localhost:3005/carrito'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'idusuario': idUsuario,

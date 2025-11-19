@@ -24,9 +24,14 @@ import 'package:quimisol/features/admin/productos/page/producto_edit_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_create_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart';
+
+// 🔹 Mapa repartidor
 import 'package:quimisol/features/distributor/distributor_map/screens/location_route_page.dart';
 
+// 🔹 Home repartidor
 import 'package:quimisol/features/distributor/home/screens/home_distributor_page.dart';
+
+// Homes cliente / invitado
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
 
@@ -34,6 +39,7 @@ import 'package:quimisol/features/home/screens/home_user_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_create_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_edit_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_list_page.dart';
+
 import 'package:quimisol/features/locations/screens/location_edit_page.dart';
 import 'package:quimisol/features/locations/screens/locations_list_page.dart';
 import 'package:quimisol/features/pedidos/pages/select_location_page.dart';
@@ -79,6 +85,7 @@ import 'package:quimisol/features/public/favoritos/favoritos_page.dart';
 // ==  CONFIG
 // ============================================================
 import 'package:quimisol/core/config/env.dart';
+
 
 class AppModule extends Module {
   // ---------------------------------------------------------------------------
@@ -129,8 +136,10 @@ class AppModule extends Module {
     // Ruta mapa: desde mi ubicación actual hasta la ubicación seleccionada
     r.child('/location-route', child: (_) {
       final data = Modular.args.data as Map<String, dynamic>;
+
       return LocationRoutePage(
         idubicacion: data['idubicacion'] as int,
+        idPedido: data['idPedido'] as int, // 👈 AÑADIDO
         nombre: (data['nombre'] ?? '') as String,
         latitud: (data['latitud'] as num).toDouble(),
         longitud: (data['longitud'] as num).toDouble(),

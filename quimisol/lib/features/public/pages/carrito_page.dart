@@ -33,7 +33,7 @@ class _CarritoPageState extends State<CarritoPage> {
         return;
       }
 
-      final url = Uri.parse('http://192.168.213.85:3005/carrito/$idUsuario');
+      final url = Uri.parse('http://localhost:3005/carrito/$idUsuario');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -72,7 +72,7 @@ class _CarritoPageState extends State<CarritoPage> {
     final idUsuario = await AuthStorage.getIdPersona();
     if (idUsuario == null) return;
     final url = Uri.parse(
-      'http://192.168.213.85:3005/carrito/$idUsuario/$idProducto',
+      'http://localhost:3005/carrito/$idUsuario/$idProducto',
     );
     final response = await http.delete(url);
 

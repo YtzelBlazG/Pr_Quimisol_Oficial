@@ -4,7 +4,7 @@ import 'package:quimisol/features/admin/productos/data/models/producto_model.dar
 
 class ProductoService {
   final String baseUrl =
-      'http://192.168.213.85:3005/productos'; // Ajusta si usas otro puerto
+      'http://localhost:3005/productos'; // Ajusta si usas otro puerto
 
   // 🔹 Obtener todos los productos
   Future<List<Producto>> getProductos() async {

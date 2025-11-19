@@ -41,9 +41,7 @@ class _PedidosPageState extends State<PedidosPage>
         return;
       }
 
-      final url = Uri.parse(
-        'http://192.168.213.85:3005/pedidos/usuario/$idUsuario',
-      );
+      final url = Uri.parse('http://localhost:3005/pedidos/usuario/$idUsuario');
       final resp = await http.get(url);
       if (resp.statusCode == 200) {
         setState(() {
@@ -68,7 +66,7 @@ class _PedidosPageState extends State<PedidosPage>
 
   /// Devuelve {detalles: List, ubicaciones: List}
   Future<Map<String, dynamic>> _cargarDetalleYUbicaciones(int idPedido) async {
-    final url = Uri.parse('http://192.168.213.85:3005/pedidos/$idPedido');
+    final url = Uri.parse('http://localhost:3005/pedidos/$idPedido');
     final resp = await http.get(url);
     if (resp.statusCode == 200) {
       final json = jsonDecode(resp.body);

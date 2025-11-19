@@ -46,7 +46,7 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
   Future<void> cargarCategorias() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.213.85:3005/categorias'),
+        Uri.parse('http://localhost:3005/categorias'),
       );
       if (response.statusCode == 200) {
         setState(() {
@@ -63,7 +63,7 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
   Future<void> cargarProductos() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.213.85:3005/productos'),
+        Uri.parse('http://localhost:3005/productos'),
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);

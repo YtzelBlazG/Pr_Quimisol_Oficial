@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class UserService {
-  final String baseUrl = "http://192.168.213.85:3005";
+  final String baseUrl = "http://localhost:3005";
 
   Future<Map<String, dynamic>> login(String correo, String password) async {
     final res = await http.post(
