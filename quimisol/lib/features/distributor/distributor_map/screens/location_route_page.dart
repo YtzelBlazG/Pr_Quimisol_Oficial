@@ -1,4 +1,4 @@
-// lib/features/repartidor/screens/location_route_page.dart
+// lib/features/distributor/distributor_map/screens/location_route_page.dart
 
 import 'dart:async';
 import 'dart:convert';
@@ -19,19 +19,21 @@ const String MAPBOX_TOKEN =
     'pk.eyJ1Ijoic2ViYXMxMjciLCJhIjoiY21mMGhhdDRiMG5mbTJscHlnMGUweGlicSJ9.SVeyu-4RTAybmgRxhPxSWw';
 
 class LocationRoutePage extends StatefulWidget {
-  final int idubicacion;
   final int idPedido;
+  final int idubicacion;
   final String nombre;
   final double latitud;
   final double longitud;
+  final bool autoStartTracking;
 
   const LocationRoutePage({
     super.key,
-    required this.idubicacion,
     required this.idPedido,
+    required this.idubicacion,
     required this.nombre,
     required this.latitud,
     required this.longitud,
+    this.autoStartTracking = false,
   });
 
   @override
@@ -51,7 +53,7 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
   double? _distanceKm;
   double? _durationMin;
 
-  bool _mapFitted = false; // para centrar solo la primera vez
+  bool _mapFitted = false; // para no llamar fitBounds antes de tiempo
 
   // 🔹 tracking
   bool _enCamino = false;
@@ -63,8 +65,13 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
   void initState() {
     super.initState();
     _dest = LatLng(widget.latitud, widget.longitud);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _init();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _init();
+
+      // si quisieras que arranque solo al entrar, puedes activar esto:
+      if (widget.autoStartTracking && mounted) {
+        _marcarUbicacionEnCaminoYEmpezarTracking();
+      }
     });
   }
 
@@ -130,11 +137,11 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
       setState(() {
         _loading = true;
         _error = null;
-        _mapFitted = false; // solo se reinicia cuando recargamos "a mano"
+        _mapFitted = false;
       });
     } else {
       _error = null;
-      // 👇 NO tocamos _mapFitted aquí para que no recoloque la cámara
+      _mapFitted = false;
     }
 
     final uri = Uri.parse(
@@ -227,24 +234,30 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
   //   TRACKING EN TIEMPO REAL (cada 8 segundos)
   // =========================================================
 
-  void _toggleEnCamino() async {
-    if (_enCamino) {
-      // detener seguimiento
-      _trackingTimer?.cancel();
-      setState(() => _enCamino = false);
-    } else {
-      // marcar en backend y arrancar seguimiento
-      await _actualizarEstadoUbicacion('en_camino');
+  void _startTracking() {
+    _trackingTimer?.cancel();
+    setState(() => _enCamino = true);
 
-      setState(() => _enCamino = true);
-      _trackingTimer?.cancel();
-      // primer update inmediato
-      _actualizarPosicionYRuta();
-      // luego cada 8 segundos
-      _trackingTimer = Timer.periodic(
-        const Duration(seconds: 8),
-        (_) => _actualizarPosicionYRuta(),
-      );
+    // primer update inmediato
+    _actualizarPosicionYRuta();
+
+    // luego cada 8 segundos
+    _trackingTimer = Timer.periodic(
+      const Duration(seconds: 8),
+      (_) => _actualizarPosicionYRuta(),
+    );
+  }
+
+  void _stopTracking() {
+    _trackingTimer?.cancel();
+    setState(() => _enCamino = false);
+  }
+
+  void _toggleEnCamino() {
+    if (_enCamino) {
+      _stopTracking();
+    } else {
+      _marcarUbicacionEnCaminoYEmpezarTracking();
     }
   }
 
@@ -265,15 +278,16 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
         _myPos = LatLng(pos.latitude, pos.longitude);
       });
 
-      // 👇 ya NO movemos la cámara aquí para que el usuario pueda explorar el mapa
+      // 🔹 NO movemos la cámara para no perder la posición que eligió el usuario
+      // _mapController.move(_myPos!, _mapController.camera.zoom);
 
       // guardar en backend
       await _guardarPosicionEnBackend(pos);
 
-      // recalcular ruta, pero sin mostrar loading spinner ni mover cámara
+      // recalcular ruta, pero sin mostrar loading spinner
       await _fetchRoute(silent: true);
     } catch (e) {
-      // silencioso por ahora
+      // opcional: log / snack
     }
   }
 
@@ -295,55 +309,55 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
         }),
       );
     } catch (e) {
-      // silencioso
+      // silencioso por ahora
     }
   }
 
-  /// PATCH estado de esta ubicación: 'pedido' | 'en_camino' | 'entregado'
-  Future<void> _actualizarEstadoUbicacion(String estado) async {
+  /// 🔹 Llama al backend para:
+  ///  - asignar esta ubicación al repartidor actual
+  ///  - poner estado_entrega = 'en_camino'
+  ///  - luego inicia el tracking en la app
+  Future<void> _marcarUbicacionEnCaminoYEmpezarTracking() async {
     try {
-      final uri = Uri.parse(
-        '$_baseUrl/pedidos/${widget.idPedido}/ubicaciones/${widget.idubicacion}/estado',
-      );
-
-      final resp = await http.patch(
-        uri,
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'estado': estado}),
-      );
-
-      if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        // si hay error lo mostramos
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'No se pudo actualizar el estado (${resp.statusCode}).',
-              ),
-            ),
-          );
-        }
-      } else {
-        if (mounted) {
-          String msg;
-          if (estado == 'en_camino') {
-            msg = 'Ubicación marcada como EN CAMINO.';
-          } else if (estado == 'entregado') {
-            msg = 'Ubicación marcada como ENTREGADA.';
-          } else {
-            msg = 'Estado actualizado.';
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg)),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+      final idPersona = await AuthStorage.getIdPersona();
+      if (idPersona == null) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al actualizar estado: $e')),
+          const SnackBar(
+            content: Text('No se pudo obtener tu persona (sesión).'),
+          ),
+        );
+        return;
+      }
+
+      final uri = Uri.parse(
+        '$_baseUrl/pedidos/repartidores/$idPersona/pedidos/${widget.idPedido}'
+        '/ubicaciones/${widget.idubicacion}/en-camino',
+      );
+
+      final res = await http.patch(uri);
+
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ubicación marcada como en camino.')),
+        );
+        _startTracking();
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Error al marcar en camino (${res.statusCode}).',
+            ),
+          ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al marcar en camino: $e')),
+      );
     }
   }
 
@@ -351,7 +365,7 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Ajustar bounds cuando ya tenemos puntos y el mapa está montado.
+    // Ajustar bounds solo una vez cuando ya tenemos puntos y el mapa está montado.
     if (!_mapFitted && _routePoints.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         try {
@@ -480,7 +494,7 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
                       ],
                     ),
 
-                    // Tarjeta inferior con info de distancia / tiempo + botones
+                    // Tarjeta inferior con info de distancia / tiempo + botón en camino
                     if (_distanceKm != null && _durationMin != null)
                       Align(
                         alignment: Alignment.bottomCenter,
@@ -566,40 +580,6 @@ class _LocationRoutePageState extends State<LocationRoutePage> {
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                       vertical: 12,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              // Botón marcar como entregado
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  onPressed: () async {
-                                    // detenemos tracking
-                                    _trackingTimer?.cancel();
-                                    setState(() => _enCamino = false);
-
-                                    await _actualizarEstadoUbicacion(
-                                      'entregado',
-                                    );
-
-                                    if (mounted) {
-                                      Navigator.of(context).pop();
-                                    }
-                                  },
-                                  icon: const Icon(Icons.check_circle_outline),
-                                  label: const Text('Marcar como entregado'),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.green.shade700,
-                                    side: BorderSide(
-                                      color: Colors.green.shade400,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),

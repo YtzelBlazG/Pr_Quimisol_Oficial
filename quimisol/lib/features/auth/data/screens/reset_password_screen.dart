@@ -25,7 +25,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _obscure2 = true;
 
   // 🔧 AJUSTA el baseUrl según tu entorno
-  final _svc = MailRecoveryService(baseUrl: 'http://localhost:3005');
+  final _svc = MailRecoveryService(baseUrl: 'http://192.168.213.85:3005');
 
   bool _saving = false;
 

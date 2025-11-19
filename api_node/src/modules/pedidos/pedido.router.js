@@ -8,7 +8,10 @@ const {
   obtenerPedidoConDetalles,
   guardarUbicacionesDePedido,
   listarPedidosDeRepartidor,
-  actualizarPosicionRepartidor, // 👈 NUEVO
+  actualizarPosicionRepartidor,
+  actualizarEstadoUbicacionPedido,
+  marcarUbicacionEnCamino,
+  obtenerPosicionRepartidorPorUbicacion, // ✅ import del controller
 } = require('./pedido.controller');
 
 const router = Router();
@@ -25,11 +28,29 @@ router.get('/repartidores/:idPersona/pedidos', listarPedidosDeRepartidor);
 // 🔹 Actualizar posición actual de un repartidor
 router.patch('/repartidores/:idPersona/posicion', actualizarPosicionRepartidor);
 
+// 🔹 Marcar una ubicación como EN CAMINO y asignarla al repartidor
+router.patch(
+  '/repartidores/:idPersona/pedidos/:idPedido/ubicaciones/:idUbicacion/en-camino',
+  marcarUbicacionEnCamino
+);
+
+// 🔹 Endpoint para el tracking del repartidor (cliente)
+router.get(
+  '/:idPedido/ubicaciones/:idUbicacion/posicion-repartidor',
+  obtenerPosicionRepartidorPorUbicacion
+);
+
 // Crear pedido desde carrito
 router.post('/crear-desde-carrito/:idUsuario', crearPedidoDesdeCarrito);
 
 // Listar pedidos de un usuario (app cliente)
 router.get('/usuario/:idUsuario', listarPedidosDeUsuario);
+
+// 🔹 Actualizar estado de UNA ubicación de un pedido
+router.patch(
+  '/:idPedido/ubicaciones/:idUbicacion/estado',
+  actualizarEstadoUbicacionPedido
+);
 
 // Obtener pedido con detalles
 router.get('/:idPedido', obtenerPedidoConDetalles);

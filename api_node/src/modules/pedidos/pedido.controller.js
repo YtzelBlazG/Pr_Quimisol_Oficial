@@ -7,9 +7,15 @@ const {
   listarTodosLosPedidosService,
   listarPedidosPorUbicacionService,
   listarPedidosDeRepartidorService,
-  actualizarPosicionRepartidorService, // 👈 NUEVO
+  actualizarPosicionRepartidorService,
+  actualizarEstadoUbicacionPedidoService,
+  marcarUbicacionEnCaminoService,
+  obtenerPosicionRepartidorPorUbicacionService, // ✅ nombre real del service
 } = require('./pedido.service');
 
+/**
+ * POST /pedidos/crear-desde-carrito/:idUsuario
+ */
 async function crearPedidoDesdeCarrito(req, res) {
   try {
     const { idUsuario } = req.params;
@@ -31,6 +37,7 @@ async function crearPedidoDesdeCarrito(req, res) {
 }
 
 /**
+ * GET /pedidos/usuario/:idUsuario
  * Lista pedidos de un usuario (app cliente)
  */
 async function listarPedidosDeUsuario(req, res) {
@@ -45,6 +52,7 @@ async function listarPedidosDeUsuario(req, res) {
 }
 
 /**
+ * GET /pedidos
  * Lista TODOS los pedidos (panel admin)
  */
 async function listarTodosLosPedidos(req, res) {
@@ -60,8 +68,8 @@ async function listarTodosLosPedidos(req, res) {
 }
 
 /**
+ * GET /pedidos/por-ubicacion
  * Lista pedidos por ubicación (una fila por cada (pedido, ubicación)).
- * Útil para ver cada entrega como un "sub-pedido".
  */
 async function listarPedidosPorUbicacion(req, res) {
   try {
@@ -75,6 +83,10 @@ async function listarPedidosPorUbicacion(req, res) {
   }
 }
 
+/**
+ * GET /pedidos/:idPedido
+ * Cabecera + detalles + ubicaciones de un pedido
+ */
 async function obtenerPedidoConDetalles(req, res) {
   try {
     const { idPedido } = req.params;
@@ -122,7 +134,7 @@ async function guardarUbicacionesDePedido(req, res) {
 }
 
 /**
- * 🔹 GET /repartidores/:idPersona/pedidos
+ * GET /pedidos/repartidores/:idPersona/pedidos
  * idPersona = persona del repartidor
  */
 async function listarPedidosDeRepartidor(req, res) {
@@ -144,7 +156,7 @@ async function listarPedidosDeRepartidor(req, res) {
 }
 
 /**
- * 🔹 PATCH /pedidos/repartidores/:idPersona/posicion
+ * PATCH /pedidos/repartidores/:idPersona/posicion
  * body: { latitud, longitud }
  */
 async function actualizarPosicionRepartidor(req, res) {
@@ -165,13 +177,95 @@ async function actualizarPosicionRepartidor(req, res) {
 
     await actualizarPosicionRepartidorService(idNum, latitud, longitud);
 
-    // 204 = sin contenido, solo OK
     return res.status(204).send();
   } catch (err) {
     const status = err.status || 500;
     console.error('actualizarPosicionRepartidor:', err);
     return res.status(status).json({
       message: err.message || 'Error al actualizar posición del repartidor.',
+    });
+  }
+}
+
+/**
+ * PATCH /pedidos/:idPedido/ubicaciones/:idUbicacion/estado
+ * body: { estado: 'pedido' | 'en_camino' | 'entregado' }
+ */
+async function actualizarEstadoUbicacionPedido(req, res) {
+  try {
+    const { idPedido, idUbicacion } = req.params;
+    const { estado } = req.body || {};
+
+    const idPedNum = Number(idPedido);
+    const idUbNum = Number(idUbicacion);
+
+    if (!Number.isFinite(idPedNum) || !Number.isFinite(idUbNum)) {
+      return res
+        .status(400)
+        .json({ message: 'idPedido o idUbicacion inválidos.' });
+    }
+
+    if (!estado) {
+      return res.status(400).json({ message: 'estado es requerido.' });
+    }
+
+    await actualizarEstadoUbicacionPedidoService(idPedNum, idUbNum, estado);
+
+    return res.status(200).json({
+      message: 'Estado de entrega de la ubicación actualizado correctamente.',
+    });
+  } catch (err) {
+    const status = err.status || 500;
+    console.error('actualizarEstadoUbicacionPedido:', err);
+    return res.status(status).json({
+      message: err.message || 'Error al actualizar estado de la ubicación.',
+    });
+  }
+}
+
+/**
+ * PATCH
+ * /pedidos/repartidores/:idPersona/pedidos/:idPedido/ubicaciones/:idUbicacion/en-camino
+ *
+ * Asigna el repartidor a esa ubicación y la marca como "en_camino".
+ */
+async function marcarUbicacionEnCamino(req, res) {
+  try {
+    console.log('[marcarUbicacionEnCamino] params:', req.params);
+    const { idPersona, idPedido, idUbicacion } = req.params;
+
+    await marcarUbicacionEnCaminoService(idPersona, idPedido, idUbicacion);
+
+    return res.status(204).send();
+  } catch (err) {
+    const status = err.status || 500;
+    console.error('marcarUbicacionEnCamino:', err);
+    return res
+      .status(status)
+      .json({ message: err.message || 'Error al marcar ubicación en camino.' });
+  }
+}
+
+/**
+ * GET /pedidos/:idPedido/ubicaciones/:idUbicacion/posicion-repartidor
+ * Devuelve la posición del repartidor asignado y la posición del destino.
+ */
+async function obtenerPosicionRepartidorPorUbicacion(req, res) {
+  try {
+    const { idPedido, idUbicacion } = req.params;
+
+    const data = await obtenerPosicionRepartidorPorUbicacionService(
+      idPedido,
+      idUbicacion
+    );
+
+    return res.json(data);
+  } catch (err) {
+    const status = err.status || 500;
+    console.error('obtenerPosicionRepartidorPorUbicacion:', err);
+    return res.status(status).json({
+      message:
+        err.message || 'Error al obtener la posición del repartidor.',
     });
   }
 }
@@ -184,5 +278,8 @@ module.exports = {
   obtenerPedidoConDetalles,
   guardarUbicacionesDePedido,
   listarPedidosDeRepartidor,
-  actualizarPosicionRepartidor, // 👈 NUEVO
+  actualizarPosicionRepartidor,
+  actualizarEstadoUbicacionPedido,
+  marcarUbicacionEnCamino,
+  obtenerPosicionRepartidorPorUbicacion, // ✅ export para el tracking
 };

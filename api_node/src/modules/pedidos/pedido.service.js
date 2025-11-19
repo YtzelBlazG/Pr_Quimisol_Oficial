@@ -285,7 +285,10 @@ async function listarPedidosPorUbicacionService() {
       p.createdon,
 
       up.idubicacion,
-      up.createdon AS relacion_createdon,
+      up.createdon      AS relacion_createdon,
+      up.estado_entrega AS ubicacion_estado_entrega,
+      up.entregado_en   AS ubicacion_entregado_en,
+      up.idusuario_repartidor,
 
       u.nombre    AS ubicacion_nombre,
       u.direccion AS ubicacion_direccion,
@@ -354,7 +357,7 @@ async function obtenerPedidoConDetallesService(idPedido) {
     [idPedido]
   );
 
-  // 3) Ubicaciones asociadas al pedido
+  // 3) Ubicaciones asociadas al pedido (con estado_entrega y repartidor)
   const { rows: ubis } = await pool.query(
     `
     SELECT
@@ -363,9 +366,17 @@ async function obtenerPedidoConDetallesService(idPedido) {
       u.direccion,
       u.ciudad,
       u.latitud,
-      u.longitud
+      u.longitud,
+      up.estado_entrega,
+      up.entregado_en,
+      up.idusuario_repartidor,
+      per_rep.nombre AS repartidor_nombre
     FROM ubicacion_pedido up
     JOIN ubicacion u ON u.idubicacion = up.idubicacion
+    LEFT JOIN usuario u_rep
+      ON u_rep.idusuario = up.idusuario_repartidor
+    LEFT JOIN persona per_rep
+      ON per_rep.idpersona = u_rep.idpersona
     WHERE up.idpedido = $1
     ORDER BY up.createdon ASC, u.idubicacion ASC
     `,
@@ -415,7 +426,8 @@ async function guardarUbicacionesDePedidoService(idPedido, ubicacionesIds) {
     const totalRaw = pedidoRows[0].total;
 
     // Si total_base es null (pedidos antiguos), usamos total como base.
-    const totalBase = totalBaseRaw != null ? Number(totalBaseRaw) : Number(totalRaw) || 0;
+    const totalBase =
+      totalBaseRaw != null ? Number(totalBaseRaw) : Number(totalRaw) || 0;
 
     // Filtramos y normalizamos IDs de ubicaciones
     const uniqueUbicaciones = Array.from(
@@ -427,9 +439,11 @@ async function guardarUbicacionesDePedidoService(idPedido, ubicacionesIds) {
     );
 
     // 2) Borrar relaciones anteriores de ese pedido
-    await client.query('DELETE FROM ubicacion_pedido WHERE idpedido = $1', [idPedido]);
+    await client.query('DELETE FROM ubicacion_pedido WHERE idpedido = $1', [
+      idPedido,
+    ]);
 
-    // 3) Insertar nuevas relaciones
+    // 3) Insertar nuevas relaciones (estado_entrega por defecto = 'pedido')
     const insertSql = `
       INSERT INTO ubicacion_pedido (idusuario, idpedido, idubicacion)
       VALUES ($1, $2, $3)
@@ -470,11 +484,19 @@ async function guardarUbicacionesDePedidoService(idPedido, ubicacionesIds) {
 /**
  * 🔹 Lista pedidos para un REPARTIDOR específico (por idPersona del repartidor)
  * Solo pedidos de ciclos donde el repartidor está asignado (ciclo_repartidor),
- * e incluye UNA ubicación principal (la primera asociada al pedido).
+ * e incluye UNA ubicación visible para ese repartidor:
+ *   - ubicaciones sin repartidor asignado (idusuario_repartidor IS NULL)
+ *   - o ubicaciones asignadas a ESTE repartidor.
  */
 async function listarPedidosDeRepartidorService(idPersonaRepartidor) {
   const { rows } = await pool.query(
     `
+    WITH rep AS (
+      SELECT u_rep.idusuario
+      FROM usuario u_rep
+      WHERE u_rep.idpersona = $1
+      LIMIT 1
+    )
     SELECT
       p.idpedido,
       p.idusuario          AS idusuario_cliente,
@@ -492,13 +514,15 @@ async function listarPedidosDeRepartidorService(idPersonaRepartidor) {
 
       per_cli.nombre       AS cliente_nombre,
 
-      -- Ubicación principal del pedido (primera)
+      -- Ubicación visible para este repartidor
       ub.idubicacion       AS ubicacion_id,
       ub.nombre            AS ubicacion_nombre,
       ub.direccion         AS ubicacion_direccion,
       ub.ciudad            AS ubicacion_ciudad,
       ub.latitud           AS ubicacion_latitud,
-      ub.longitud          AS ubicacion_longitud
+      ub.longitud          AS ubicacion_longitud,
+      ub.estado_entrega    AS ubicacion_estado_entrega,
+      ub.idusuario_repartidor
 
     FROM ciclo_repartidor cr
     JOIN usuario u_rep
@@ -512,10 +536,12 @@ async function listarPedidosDeRepartidorService(idPersonaRepartidor) {
     JOIN persona per_cli
       ON per_cli.idpersona = u_cli.idpersona
 
-    -- LATERAL: primera ubicación del pedido
+    -- LATERAL: primera ubicación visible para este repartidor
     LEFT JOIN LATERAL (
       SELECT
-        u.idubicacion,
+        up.idubicacion,
+        up.estado_entrega,
+        up.idusuario_repartidor,
         u.nombre,
         u.direccion,
         u.ciudad,
@@ -523,12 +549,28 @@ async function listarPedidosDeRepartidorService(idPersonaRepartidor) {
         u.longitud
       FROM ubicacion_pedido up
       JOIN ubicacion u ON u.idubicacion = up.idubicacion
+      JOIN rep ON true
       WHERE up.idpedido = p.idpedido
+        AND (
+          up.idusuario_repartidor IS NULL
+          OR up.idusuario_repartidor = rep.idusuario
+        )
       ORDER BY up.createdon ASC, u.idubicacion ASC
       LIMIT 1
     ) ub ON true
 
+    -- Solo pedidos con al menos una ubicación visible para este repartidor
     WHERE u_rep.idpersona = $1
+      AND EXISTS (
+        SELECT 1
+        FROM ubicacion_pedido up2
+        JOIN rep ON true
+        WHERE up2.idpedido = p.idpedido
+          AND (
+            up2.idusuario_repartidor IS NULL
+            OR up2.idusuario_repartidor = rep.idusuario
+          )
+      )
     ORDER BY c.anio DESC, c.mes DESC, p.createdon DESC
     `,
     [idPersonaRepartidor]
@@ -545,7 +587,11 @@ async function listarPedidosDeRepartidorService(idPersonaRepartidor) {
  * 🔹 Actualiza la posición actual de un REPARTIDOR (por idPersona)
  * Guarda latitud / longitud en la tabla repartidor_posicion.
  */
-async function actualizarPosicionRepartidorService(idPersonaRepartidor, latitud, longitud) {
+async function actualizarPosicionRepartidorService(
+  idPersonaRepartidor,
+  latitud,
+  longitud
+) {
   const lat = Number(latitud);
   const lng = Number(longitud);
 
@@ -569,6 +615,284 @@ async function actualizarPosicionRepartidorService(idPersonaRepartidor, latitud,
   );
 }
 
+/**
+ * 🔹 Actualiza el estado de UNA ubicación de un pedido
+ * estados válidos: 'pedido' | 'en_camino' | 'entregado'
+ */
+async function actualizarEstadoUbicacionPedidoService(
+  idPedido,
+  idUbicacion,
+  nuevoEstado
+) {
+  const estadosValidos = ['pedido', 'en_camino', 'entregado'];
+  if (!estadosValidos.includes(nuevoEstado)) {
+    const err = new Error('Estado de entrega inválido.');
+    err.status = 400;
+    throw err;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1) actualizar la fila de ubicacion_pedido
+    const { rowCount } = await client.query(
+      `
+      UPDATE ubicacion_pedido
+      SET
+        estado_entrega = $3,
+        entregado_en = CASE WHEN $3 = 'entregado' THEN NOW() ELSE NULL END
+      WHERE idpedido = $1
+        AND idubicacion = $2
+      `,
+      [idPedido, idUbicacion, nuevoEstado]
+    );
+
+    if (rowCount === 0) {
+      const err = new Error('Relación pedido–ubicación no encontrada.');
+      err.status = 404;
+      throw err;
+    }
+
+    // 2) recalcular estado global del pedido
+    const { rows: estadosRows } = await client.query(
+      `
+      SELECT estado_entrega
+      FROM ubicacion_pedido
+      WHERE idpedido = $1
+      `,
+      [idPedido]
+    );
+
+    const estados = estadosRows.map((r) => r.estado_entrega);
+
+    let estadoPedido = 'pedido';
+    if (estados.length > 0) {
+      const allEntregado = estados.every((e) => e === 'entregado');
+      const anyEnCamino = estados.some((e) => e === 'en_camino');
+      const anyEntregado = estados.some((e) => e === 'entregado');
+
+      if (allEntregado) {
+        estadoPedido = 'entregado';
+      } else if (anyEnCamino || anyEntregado) {
+        estadoPedido = 'en_camino';
+      } else {
+        estadoPedido = 'pedido';
+      }
+    }
+
+    await client.query(
+      `
+      UPDATE pedido
+      SET estado = $2, updatedon = NOW()
+      WHERE idpedido = $1
+      `,
+      [idPedido, estadoPedido]
+    );
+
+    await client.query('COMMIT');
+  } catch (e) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (_) {}
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * 🔹 Asigna un repartidor a UNA ubicación y la marca como 'en_camino'
+ *    (idusuario_repartidor + estado_entrega = 'en_camino' + estado del pedido)
+ */
+async function marcarUbicacionEnCaminoService(
+  idPersonaRepartidor,
+  idPedido,
+  idUbicacion
+) {
+  console.log('[marcarUbicacionEnCaminoService] params:', {
+    idPersonaRepartidor,
+    idPedido,
+    idUbicacion,
+  });
+
+  const idPer = Number(idPersonaRepartidor);
+  const idPed = Number(idPedido);
+  const idUb = Number(idUbicacion);
+
+  if (!Number.isFinite(idPer) || !Number.isFinite(idPed) || !Number.isFinite(idUb)) {
+    const err = new Error('Parámetros inválidos (idPersona, idPedido o idUbicacion).');
+    err.status = 400;
+    throw err;
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 1) Obtener el idusuario del repartidor a partir de la persona
+    const { rows: userRows } = await client.query(
+      `
+      SELECT idusuario
+      FROM usuario
+      WHERE idpersona = $1
+      LIMIT 1
+      `,
+      [idPer]
+    );
+
+    if (userRows.length === 0) {
+      const err = new Error('No se encontró usuario para el repartidor.');
+      err.status = 404;
+      throw err;
+    }
+
+    const idUsuarioRep = userRows[0].idusuario;
+    console.log('[marcarUbicacionEnCaminoService] idUsuarioRep:', idUsuarioRep);
+
+    // 2) Actualizar la fila de ubicacion_pedido:
+    //    - asignar idusuario_repartidor
+    //    - cambiar estado_entrega a 'en_camino'
+    //    - solo si aún no está asignada a otro repartidor
+    const result = await client.query(
+      `
+      UPDATE ubicacion_pedido
+      SET
+        idusuario_repartidor = $3,
+        estado_entrega       = 'en_camino',
+        entregado_en         = NULL,
+        updatedon            = NOW()
+      WHERE idpedido = $1
+        AND idubicacion = $2
+        AND (idusuario_repartidor IS NULL OR idusuario_repartidor = $3)
+      `,
+      [idPed, idUb, idUsuarioRep]
+    );
+
+    console.log('[marcarUbicacionEnCaminoService] rowCount update:', result.rowCount);
+
+    if (result.rowCount === 0) {
+      const err = new Error(
+        'La ubicación no existe o ya está asignada a otro repartidor.'
+      );
+      err.status = 409;
+      throw err;
+    }
+
+    // 3) Recalcular estado global del pedido (similar a actualizarEstadoUbicacionPedidoService)
+    const { rows: estadosRows } = await client.query(
+      `
+      SELECT estado_entrega
+      FROM ubicacion_pedido
+      WHERE idpedido = $1
+      `,
+      [idPed]
+    );
+
+    const estados = estadosRows.map((r) => r.estado_entrega);
+    let estadoPedido = 'pedido';
+    if (estados.length > 0) {
+      const allEntregado = estados.every((e) => e === 'entregado');
+      const anyEnCamino = estados.some((e) => e === 'en_camino');
+      const anyEntregado = estados.some((e) => e === 'entregado');
+
+      if (allEntregado) {
+        estadoPedido = 'entregado';
+      } else if (anyEnCamino || anyEntregado) {
+        estadoPedido = 'en_camino';
+      } else {
+        estadoPedido = 'pedido';
+      }
+    }
+
+    await client.query(
+      `
+      UPDATE pedido
+      SET estado = $2, updatedon = NOW()
+      WHERE idpedido = $1
+      `,
+      [idPed, estadoPedido]
+    );
+
+    await client.query('COMMIT');
+  } catch (e) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (_) {}
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * 🔹 Devuelve la última posición del repartidor asignado
+ *    a una ubicación de un pedido.
+ */
+async function obtenerPosicionRepartidorPorUbicacionService(
+  idPedido,
+  idUbicacion
+) {
+  const idPed = Number(idPedido);
+  const idUb = Number(idUbicacion);
+
+  if (!Number.isFinite(idPed) || !Number.isFinite(idUb)) {
+    const err = new Error('Parámetros inválidos.');
+    err.status = 400;
+    throw err;
+  }
+
+  const { rows } = await pool.query(
+    `
+    SELECT
+      up.idusuario_repartidor,
+      u_rep.idpersona           AS idpersona_repartidor,
+      per_rep.nombre            AS repartidor_nombre,
+      rp.latitud,
+      rp.longitud,
+      ub.latitud  AS latitud_destino,
+      ub.longitud AS longitud_destino
+    FROM ubicacion_pedido up
+    JOIN ubicacion ub
+      ON ub.idubicacion = up.idubicacion
+    LEFT JOIN usuario u_rep
+      ON u_rep.idusuario = up.idusuario_repartidor
+    LEFT JOIN persona per_rep
+      ON per_rep.idpersona = u_rep.idpersona
+    LEFT JOIN repartidor_posicion rp
+      ON rp.idpersona = u_rep.idpersona
+    WHERE up.idpedido = $1
+      AND up.idubicacion = $2
+    LIMIT 1
+    `,
+    [idPed, idUb]
+  );
+
+  if (rows.length === 0 || !rows[0].idusuario_repartidor) {
+    const err = new Error('No hay repartidor asignado a esta ubicación.');
+    err.status = 404;
+    throw err;
+  }
+
+  const row = rows[0];
+
+  if (row.latitud == null || row.longitud == null) {
+    const err = new Error('Aún no hay posición registrada para el repartidor.');
+    err.status = 404;
+    throw err;
+  }
+
+  return {
+    latitud: Number(row.latitud),
+    longitud: Number(row.longitud),
+    latitud_destino:
+      row.latitud_destino != null ? Number(row.latitud_destino) : null,
+    longitud_destino:
+      row.longitud_destino != null ? Number(row.longitud_destino) : null,
+    repartidor_nombre: row.repartidor_nombre || '',
+  };
+}
+
 module.exports = {
   crearPedidoDesdeCarritoService,
   listarPedidosDeUsuarioService,
@@ -577,5 +901,8 @@ module.exports = {
   obtenerPedidoConDetallesService,
   guardarUbicacionesDePedidoService,
   listarPedidosDeRepartidorService,
-  actualizarPosicionRepartidorService, // 👈 NUEVO
+  actualizarPosicionRepartidorService,     // tracking repartidor
+  actualizarEstadoUbicacionPedidoService,  // estado por ubicación
+  marcarUbicacionEnCaminoService,          // asigna repartidor + en_camino
+  obtenerPosicionRepartidorPorUbicacionService, // posición para tracking cliente
 };

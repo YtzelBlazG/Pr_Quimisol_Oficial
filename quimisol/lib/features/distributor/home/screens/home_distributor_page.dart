@@ -30,6 +30,8 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
   double? _myLng;
   String? _locationError;
 
+  int? _idPersona; // 👈 id de la persona (repartidor logueado)
+
   String get _baseUrl => Env.apiBaseUrl;
 
   @override
@@ -57,6 +59,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
       if (idPersona == null) {
         throw Exception('No se encontró idpersona en sesión.');
       }
+      _idPersona = idPersona; // 👈 guardamos para usar luego
 
       // Ruta: /pedidos/repartidores/:idPersona/pedidos
       final uri = Uri.parse(
@@ -171,8 +174,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
 
-    final a =
-        math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_deg2rad(lat1)) *
             math.cos(_deg2rad(lat2)) *
             math.sin(dLon / 2) *
@@ -252,7 +254,8 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                   shape: const StadiumBorder(),
                 ),
                 icon: const Icon(Icons.refresh),
-                label: const Text('Reintentar', style: TextStyle(fontSize: 16)),
+                label:
+                    const Text('Reintentar', style: TextStyle(fontSize: 16)),
               ),
             ),
           ],
@@ -298,7 +301,8 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                 Expanded(
                   child: Text(
                     _locationError!,
-                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                    style:
+                        const TextStyle(fontSize: 12, color: Colors.red),
                   ),
                 ),
               ],
@@ -415,9 +419,9 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     final double baseTotal = double.tryParse((p['total'] ?? 0).toString()) ?? 0;
     final double totalConUbicaciones =
         double.tryParse(
-          (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
-        ) ??
-        baseTotal;
+              (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
+            ) ??
+            baseTotal;
 
     final int ubicacionesCount =
         int.tryParse((p['ubicaciones_count'] ?? 0).toString()) ?? 0;
@@ -645,11 +649,31 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
 
                     final distanciaKm = _distanceFromMe(lat, lng);
 
+                    // 👇 repartidor asignado a esta ubicación (si existe)
+                    final int? idPersonaRepartidor = u['idpersona_repartidor'] != null
+                        ? int.tryParse(u['idpersona_repartidor'].toString())
+                        : null;
+
+                    final bool tomadaPorOtro = idPersonaRepartidor != null &&
+                        _idPersona != null &&
+                        idPersonaRepartidor != _idPersona;
+
                     Future<void> _abrirUbicacion() async {
                       final idUbicacion = u['idubicacion'] ?? u['id'];
                       if (idUbicacion == null) return;
 
-                      // Navega a la pantalla de ruta
+                      // Si está tomada por otro repartidor, no dejamos entrar
+                      if (tomadaPorOtro) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Esta ubicación ya fue asignada a otro repartidor.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
                       await Modular.to.pushNamed(
                         '/location-route',
                         arguments: {
@@ -676,11 +700,15 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                     if (estadoEntrega == 'pedido') {
                       chipColor = Colors.grey.shade100;
                       chipText = Colors.grey.shade800;
-                      chipTextLabel = 'Pendiente';
+                      chipTextLabel = tomadaPorOtro
+                          ? 'Tomada'
+                          : 'Pendiente';
                     } else if (estadoEntrega == 'en_camino') {
                       chipColor = Colors.blue.shade50;
                       chipText = Colors.blue.shade700;
-                      chipTextLabel = 'En camino';
+                      chipTextLabel = tomadaPorOtro
+                          ? 'En camino (otro)'
+                          : 'En camino';
                     } else {
                       chipColor = Colors.green.shade50;
                       chipText = Colors.green.shade700;
@@ -698,7 +726,8 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ListTile(
-                        onTap: esEntregada ? null : () => _abrirUbicacion(),
+                        onTap:
+                            esEntregada || tomadaPorOtro ? null : () => _abrirUbicacion(),
                         leading: const CircleAvatar(
                           child: Icon(Icons.place, color: Colors.white),
                           backgroundColor: Colors.blue,
@@ -793,6 +822,36 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.green.shade700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (tomadaPorOtro)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.lock_outline,
+                                      size: 16,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Otro repartidor',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade800,
                                       ),
                                     ),
                                   ],

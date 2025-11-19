@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class CarritoService {
-  static const String _baseUrl = 'http://localhost:3005';
+  static const String _baseUrl = 'http://192.168.213.85:3005';
 
   /// ➕ Agregar producto al carrito
   static Future<bool> agregarProductoAlCarrito({

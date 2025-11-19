@@ -25,13 +25,9 @@ import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_create_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart';
 
-// 🔹 Mapa repartidor
 import 'package:quimisol/features/distributor/distributor_map/screens/location_route_page.dart';
-
-// 🔹 Home repartidor
 import 'package:quimisol/features/distributor/home/screens/home_distributor_page.dart';
 
-// Homes cliente / invitado
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
 
@@ -39,9 +35,9 @@ import 'package:quimisol/features/home/screens/home_user_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_create_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_edit_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_list_page.dart';
-
 import 'package:quimisol/features/locations/screens/location_edit_page.dart';
 import 'package:quimisol/features/locations/screens/locations_list_page.dart';
+import 'package:quimisol/features/pedidos/pages/pedido_tracking_page.dart';
 import 'package:quimisol/features/pedidos/pages/select_location_page.dart';
 
 // ============================================================
@@ -85,7 +81,6 @@ import 'package:quimisol/features/public/favoritos/favoritos_page.dart';
 // ==  CONFIG
 // ============================================================
 import 'package:quimisol/core/config/env.dart';
-
 
 class AppModule extends Module {
   // ---------------------------------------------------------------------------
@@ -138,11 +133,12 @@ class AppModule extends Module {
       final data = Modular.args.data as Map<String, dynamic>;
 
       return LocationRoutePage(
+        idPedido: data['idPedido'] as int,
         idubicacion: data['idubicacion'] as int,
-        idPedido: data['idPedido'] as int, // 👈 AÑADIDO
         nombre: (data['nombre'] ?? '') as String,
         latitud: (data['latitud'] as num).toDouble(),
         longitud: (data['longitud'] as num).toDouble(),
+        autoStartTracking: (data['autoStartTracking'] as bool?) ?? false,
       );
     });
 
@@ -226,5 +222,20 @@ class AppModule extends Module {
     // Admin – Pedidos & ciclos
     r.child('/admin/pedidos', child: (_) => const PedidosListPage());
     r.child('/admin/ciclos-entrega', child: (_) => const CiclosEntregaPage());
+
+    r.child(
+      '/pedidos/tracking',
+      child: (_) {
+        final data = Modular.args.data as Map<String, dynamic>;
+        return PedidoTrackingPage(
+          idPedido: data['idPedido'] as int,
+          idUbicacion: data['idUbicacion'] as int,
+          nombreUbicacion: (data['nombre'] ?? '') as String,
+          latitud: (data['latitud'] as num).toDouble(),
+          longitud: (data['longitud'] as num).toDouble(),
+          repartidorNombre: data['repartidorNombre'] as String?,
+        );
+      },
+    );
   }
 }

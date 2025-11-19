@@ -13,7 +13,7 @@ class AdminDashboardPage extends StatefulWidget {
 
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   // <- AJUSTA TU BACKEND
-  static const _apiBase = 'http://localhost:3005';
+  static const _apiBase = 'http://192.168.213.85:3005';
 
   late final AdminStatsService _service;
   late final AiDashboardService _ai;
