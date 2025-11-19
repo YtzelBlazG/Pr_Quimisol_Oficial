@@ -36,15 +36,18 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final favoritosProvider =
-        Provider.of<FavoritosProvider>(context, listen: false);
+    final favoritosProvider = Provider.of<FavoritosProvider>(
+      context,
+      listen: false,
+    );
     favoritosProvider.checkAndUpdateUsuario();
   }
 
   Future<void> cargarCategorias() async {
     try {
-      final response =
-          await http.get(Uri.parse('http://localhost:3005/categorias'));
+      final response = await http.get(
+        Uri.parse('http://localhost:3005/categorias'),
+      );
       if (response.statusCode == 200) {
         setState(() {
           categorias = jsonDecode(response.body);
@@ -59,8 +62,9 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
 
   Future<void> cargarProductos() async {
     try {
-      final response =
-          await http.get(Uri.parse('http://localhost:3005/productos'));
+      final response = await http.get(
+        Uri.parse('http://localhost:3005/productos'),
+      );
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
@@ -82,25 +86,39 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
   void aplicarFiltros() {
     List<dynamic> filtrados = productos.where((p) {
       final matchesCategoria =
-          categoriaSeleccionada == null || p['idcategoria'] == categoriaSeleccionada;
-      final matchesTexto = textoBusqueda.isEmpty ||
-          p['nombre'].toString().toLowerCase().contains(textoBusqueda.toLowerCase()) ||
-          p['codigo'].toString().toLowerCase().contains(textoBusqueda.toLowerCase());
+          categoriaSeleccionada == null ||
+          p['idcategoria'] == categoriaSeleccionada;
+      final matchesTexto =
+          textoBusqueda.isEmpty ||
+          p['nombre'].toString().toLowerCase().contains(
+            textoBusqueda.toLowerCase(),
+          ) ||
+          p['codigo'].toString().toLowerCase().contains(
+            textoBusqueda.toLowerCase(),
+          );
       return matchesCategoria && matchesTexto;
     }).toList();
 
     switch (ordenSeleccionado) {
       case 'precio_asc':
-        filtrados.sort((a, b) => (a['precio'] ?? 0).compareTo(b['precio'] ?? 0));
+        filtrados.sort(
+          (a, b) => (a['precio'] ?? 0).compareTo(b['precio'] ?? 0),
+        );
         break;
       case 'precio_desc':
-        filtrados.sort((a, b) => (b['precio'] ?? 0).compareTo(a['precio'] ?? 0));
+        filtrados.sort(
+          (a, b) => (b['precio'] ?? 0).compareTo(a['precio'] ?? 0),
+        );
         break;
       case 'nombre_asc':
-        filtrados.sort((a, b) => (a['nombre'] ?? '').compareTo(b['nombre'] ?? ''));
+        filtrados.sort(
+          (a, b) => (a['nombre'] ?? '').compareTo(b['nombre'] ?? ''),
+        );
         break;
       case 'nombre_desc':
-        filtrados.sort((a, b) => (b['nombre'] ?? '').compareTo(a['nombre'] ?? ''));
+        filtrados.sort(
+          (a, b) => (b['nombre'] ?? '').compareTo(a['nombre'] ?? ''),
+        );
         break;
     }
 
@@ -126,8 +144,9 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Productos'),
-        backgroundColor: Palette.primary, 
+        backgroundColor: Palette.primary,
         foregroundColor: Colors.white,
       ),
       body: Column(
@@ -160,8 +179,10 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
                     Expanded(
                       child: DropdownButton<int?>(
                         isExpanded: true,
-                        value: categorias.any(
-                                (cat) => cat['id'] == categoriaSeleccionada)
+                        value:
+                            categorias.any(
+                              (cat) => cat['id'] == categoriaSeleccionada,
+                            )
                             ? categoriaSeleccionada
                             : null,
                         hint: const Text("Categoría"),
@@ -171,7 +192,9 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
                         },
                         items: [
                           const DropdownMenuItem(
-                              value: null, child: Text("Todas")),
+                            value: null,
+                            child: Text("Todas"),
+                          ),
                           if (categorias.isNotEmpty)
                             ...categorias.map((cat) {
                               return DropdownMenuItem<int>(
@@ -194,13 +217,21 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
                         },
                         items: const [
                           DropdownMenuItem(
-                              value: 'nombre_asc', child: Text("Nombre A-Z")),
+                            value: 'nombre_asc',
+                            child: Text("Nombre A-Z"),
+                          ),
                           DropdownMenuItem(
-                              value: 'nombre_desc', child: Text("Nombre Z-A")),
+                            value: 'nombre_desc',
+                            child: Text("Nombre Z-A"),
+                          ),
                           DropdownMenuItem(
-                              value: 'precio_asc', child: Text("Precio ↑")),
+                            value: 'precio_asc',
+                            child: Text("Precio ↑"),
+                          ),
                           DropdownMenuItem(
-                              value: 'precio_desc', child: Text("Precio ↓")),
+                            value: 'precio_desc',
+                            child: Text("Precio ↓"),
+                          ),
                         ],
                       ),
                     ),
@@ -213,19 +244,17 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
           // 🧾 Lista de productos
           Expanded(
             child: productosFiltrados.isEmpty
-                ? const Center(
-                    child: Text('No hay productos disponibles.'),
-                  )
+                ? const Center(child: Text('No hay productos disponibles.'))
                 : GridView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: productosFiltrados.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 2.2 / 3,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
+                          crossAxisCount: 2,
+                          childAspectRatio: 2.2 / 3,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
                     itemBuilder: (context, index) {
                       final producto = productosFiltrados[index];
                       producto['categoria_nombre'] ??= 'Sin categoría';

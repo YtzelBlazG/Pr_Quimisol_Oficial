@@ -35,7 +35,6 @@ class PlaceSuggestion {
     );
   }
 
-  // 👇 Getters usados por el overlay
   String get provider => 'mapbox';   // de momento todo viene de mapbox
   String get title => name;
   String get subtitle => placeName;

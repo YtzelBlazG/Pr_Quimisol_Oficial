@@ -98,6 +98,8 @@ class _CarritoPageState extends State<CarritoPage> {
     });
   }
 
+  /// Ahora "Finalizar" SOLO te lleva a seleccionar ubicaciones.
+  /// La creación del pedido se hace en SelectLocationsPage.
   Future<void> _finalizarCompra() async {
     try {
       final idUsuario = await AuthStorage.getIdPersona();
@@ -107,6 +109,7 @@ class _CarritoPageState extends State<CarritoPage> {
         ).showSnackBar(const SnackBar(content: Text('Debes iniciar sesión')));
         return;
       }
+
       if (_productosAgrupados.isEmpty) {
         ScaffoldMessenger.of(
           context,
@@ -114,36 +117,25 @@ class _CarritoPageState extends State<CarritoPage> {
         return;
       }
 
-      setState(() => _loading = true);
-      final url = Uri.parse(
-        'http://localhost:3005/pedidos/crear-desde-carrito/$idUsuario',
-      );
-      final resp = await http.post(url);
-      setState(() => _loading = false);
+      final result = await Modular.to.pushNamed<bool>('/locations/select');
 
-      if (resp.statusCode == 201) {
-        final json = jsonDecode(resp.body);
-        final idPedido = json['pedido']?['idpedido'];
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('¡Pedido #$idPedido creado!')));
+      if (result == true) {
+        // El pedido se creó y se guardaron ubicaciones en la otra pantalla
+        await _cargarCarrito(); // se limpiará porque el backend borra el carrito
+        if (!mounted) return;
 
-        // limpiar UI local y navegar a pedidos
-        setState(() {
-          _productosAgrupados = [];
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Pedido creado y ubicaciones guardadas correctamente ✅',
+            ),
+          ),
+        );
 
-        // Navegar con Modular a /pedidos
+        // Opcional: ir a "Mis pedidos"
         Modular.to.pushNamed('/pedidos');
-      } else {
-        final msg =
-            jsonDecode(resp.body)['message'] ?? 'Error al crear el pedido';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } catch (e) {
-      setState(() => _loading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -156,6 +148,7 @@ class _CarritoPageState extends State<CarritoPage> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Mi carrito'),
         backgroundColor: Palette.primary,
         foregroundColor: Colors.white,

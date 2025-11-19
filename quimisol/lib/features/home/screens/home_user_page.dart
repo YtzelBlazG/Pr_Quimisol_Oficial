@@ -211,6 +211,7 @@ class _HomeUserPageState extends State<HomeUserPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3E6FA),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFFF3E6FA),
         elevation: 0,
         centerTitle: true,

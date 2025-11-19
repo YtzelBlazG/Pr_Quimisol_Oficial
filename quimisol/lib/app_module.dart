@@ -1,8 +1,10 @@
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:quimisol/features/admin/ciclo-entrega/ciclos_entrega_page.dart';
 import 'package:quimisol/features/admin/detalleproducto/data/models/detalleproducto_model.dart';
 import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_create_page.dart';
 import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_edit_page.dart';
 import 'package:quimisol/features/admin/detalleproducto/page/detalleproducto_list_page.dart';
+import 'package:quimisol/features/admin/pedidos/screens/pedidos_list_page.dart';
 
 // ====== MODELOS (para pasar objetos vía args en rutas /edit) ======
 import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
@@ -10,12 +12,8 @@ import 'package:quimisol/features/admin/unidades/data/models/unidad_model.dart';
 import 'package:quimisol/features/admin/categorias/data/categoria_model.dart';
 
 // ====== PÁGINAS ADMIN (del proyecto integrado) ======
-// Usa el path correcto según tu repo:
 import 'package:quimisol/features/admin/presentation/screens/admin_page.dart';
 import 'package:quimisol/features/admin/presentation/screens/admin_dashboard_page.dart';
-// Si en tu proyecto quedó como "presentatios", usa estos en su lugar:
-// import 'package:quimisol/features/admin/presentatios/screens/admin_page.dart';
-// import 'package:quimisol/features/admin/presentatios/screens/admin_dashboard_page.dart';
 
 // ====== PAGES PRODUCTOS ======
 import 'package:quimisol/features/admin/productos/page/producto_list_page.dart';
@@ -25,7 +23,15 @@ import 'package:quimisol/features/admin/productos/page/producto_edit_page.dart';
 // ====== PAGES UNIDADES ======
 import 'package:quimisol/features/admin/unidades/page/unidad_list_page.dart';
 import 'package:quimisol/features/admin/unidades/page/unidad_create_page.dart';
-import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart' ;
+import 'package:quimisol/features/admin/unidades/page/unidad_edit_page.dart';
+
+// 🔹 Mapa repartidor
+import 'package:quimisol/features/distributor/distributor_map/screens/location_route_page.dart';
+
+// 🔹 Home repartidor
+import 'package:quimisol/features/distributor/home/screens/home_distributor_page.dart';
+
+// Homes cliente / invitado
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
 import 'package:quimisol/features/locations/screens/locations_list_page.dart';
@@ -33,6 +39,10 @@ import 'package:quimisol/features/locations/screens/locations_list_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_create_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_edit_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_list_page.dart';
+
+import 'package:quimisol/features/locations/screens/location_edit_page.dart';
+import 'package:quimisol/features/locations/screens/locations_list_page.dart';
+import 'package:quimisol/features/pedidos/pages/select_location_page.dart';
 
 // ============================================================
 // ==  SECCIÓN: CLIENTES (Screens base)
@@ -42,7 +52,7 @@ import 'package:quimisol/features/locations/screens/add_location_map_page.dart';
 
 // ====== (NUEVO) CLIENTE: Carrito & Pedidos ======
 import 'package:quimisol/features/public/pages/carrito_page.dart';
-import 'package:quimisol/features/pedidos/pedidos_page.dart';
+import 'package:quimisol/features/pedidos/pages/pedidos_page.dart';
 
 // ============================================================
 // ==  SECCIÓN: AUTH (API / Repository / Controller / Screens)
@@ -52,8 +62,6 @@ import 'package:quimisol/features/auth/data/repositories/auth_repository.dart';
 import 'package:quimisol/features/auth/data/controllers/auth_controller.dart';
 import 'package:quimisol/features/auth/data/screens/login_screen.dart';
 import 'package:quimisol/features/auth/data/screens/profile_screen.dart';
-// import 'package:quimisol/features/login/registro/data/screens/register_screen.dart';
-// import 'package:quimisol/features/login/registro/data/screens/edit_profile_screen.dart';
 
 // ============================================================
 // ==  SERVICES & CONTROLLERS (Admin)
@@ -73,11 +81,11 @@ import 'package:quimisol/features/admin/categorias/controllers/categoria_control
 import 'package:quimisol/core/services/postgresql/categorias/categoria_service.dart';
 import 'package:quimisol/features/public/favoritos/favoritos_page.dart';
 
-
 // ============================================================
 // ==  CONFIG
 // ============================================================
 import 'package:quimisol/core/config/env.dart';
+
 
 class AppModule extends Module {
   // ---------------------------------------------------------------------------
@@ -88,21 +96,17 @@ class AppModule extends Module {
     // =========================
     // AUTH
     // =========================
-    i.addSingleton<AuthApi>(
-      () => AuthApi(),
-    ); // usa DioClient.instance internamente
+    i.addSingleton<AuthApi>(() => AuthApi());
     i.addSingleton<AuthRepository>(() => AuthRepository(i<AuthApi>()));
     i.addSingleton<AuthController>(() => AuthController(i<AuthRepository>()));
 
     // =========================
     // ADMIN: SERVICES
     // =========================
-    // Según tus clases actuales, NO reciben baseUrl por constructor:
     i.addLazySingleton<UnidadService>(() => UnidadService());
     i.addLazySingleton<ProductoService>(() => ProductoService());
     i.addLazySingleton<CategoriaService>(() => CategoriaService());
 
-    // Este SÍ recibe baseUrl:
     i.addLazySingleton<UserAdminService>(
       () => UserAdminService(baseUrl: Env.apiBaseUrl),
     );
@@ -110,7 +114,6 @@ class AppModule extends Module {
     // =========================
     // ADMIN: CONTROLLERS
     // =========================
-    // Constructores sin named param 'service'
     i.addLazySingleton<UnidadController>(() => UnidadController());
     i.addLazySingleton<ProductoController>(() => ProductoController());
     i.addLazySingleton<CategoriaController>(() => CategoriaController());
@@ -121,7 +124,7 @@ class AppModule extends Module {
   // ---------------------------------------------------------------------------
   @override
   void routes(RouteManager r) {
-    // Clientes
+    // Clientes / splash
     r.child('/', child: (_) => const SplashScreen());
     r.child('/home-guest', child: (_) => const HomeGuestPage());
     r.child('/home-user', child: (_) => const HomeUserPage());
@@ -130,26 +133,46 @@ class AppModule extends Module {
       child: (_) => AddLocationMapPage(baseUrl: Env.apiBaseUrl),
     );
     r.child('/favoritos', child: (_) => const FavoritosPage());
-    r.child('/locations', child: (_) => const LocationsListPage());
 
-    // ====== (NUEVO) CLIENTE: Carrito & Pedidos ======
-    r.child('/carrito', child: (_) => const CarritoPage()); // NEW
-    r.child('/pedidos', child: (_) => const PedidosPage()); // NEW
+    // Repartidor
+    r.child('/home-repartidor', child: (_) => const HomeRepartidorPage());
+
+    // Ruta mapa: desde mi ubicación actual hasta la ubicación seleccionada
+    r.child('/location-route', child: (_) {
+      final data = Modular.args.data as Map<String, dynamic>;
+
+      return LocationRoutePage(
+        idubicacion: data['idubicacion'] as int,
+        idPedido: data['idPedido'] as int, // 👈 AÑADIDO
+        nombre: (data['nombre'] ?? '') as String,
+        latitud: (data['latitud'] as num).toDouble(),
+        longitud: (data['longitud'] as num).toDouble(),
+      );
+    });
+
+    // Locations
+    r.child(
+      '/locations/add',
+      child: (_) => AddLocationMapPage(baseUrl: Env.apiBaseUrl),
+    );
+    r.child('/locations', child: (_) => const LocationsListPage());
+    r.child('/locations/view', child: (_) => LocationViewerPage.fromArgs());
+
+    // Cliente: Carrito & Pedidos
+    r.child('/carrito', child: (_) => const CarritoPage());
+    r.child('/pedidos', child: (_) => const PedidosPage());
+    r.child(
+      '/locations/select',
+      child: (_) => const SelectLocationsPage(),
+    );
 
     // Auth
     r.child('/auth/login', child: (_) => const LoginPage());
     r.child('/auth/profile', child: (_) => const ProfileScreen());
-    // r.child('/auth/register', child: (_) => const RegisterScreen());
-    // r.child('/auth/profile/edit'
-    // , child: (_) => const EditProfileScreen());
 
     // Admin – Shell / Dashboard
     r.child('/admin', child: (_) => const AdminPage());
-    //r.child('/admin/home', child: (_) => const MainLayout(child: HomePage()));
     r.child('/admin/dashboard', child: (_) => const AdminDashboardPage());
-
-    // Admin – Usuarios (SIN baseUrl en el widget)
-    //r.child('/admin/usuarios', child: (_) => AdminUserPage(baseUrl: Env.apiBaseUrl));
 
     // Admin – Productos
     r.child('/admin/productos', child: (_) => const ProductoListPage());
@@ -177,20 +200,38 @@ class AppModule extends Module {
     );
 
     // Admin – Detalle Producto
-    r.child('/admin/detalleproducto', child: (_) => const DetalleProductoListPage());
-    r.child('/admin/detalleproducto/create', child: (_) => const DetalleProductoCreatePage());
-    r.child('/admin/detalleproducto/edit', child: (_) {
-      final detalle = Modular.args.data as DetalleProducto;
-      return DetalleProductoEditPage(detalle: detalle);
-    });
+    r.child(
+      '/admin/detalleproducto',
+      child: (_) => const DetalleProductoListPage(),
+    );
+    r.child(
+      '/admin/detalleproducto/create',
+      child: (_) => const DetalleProductoCreatePage(),
+    );
+    r.child(
+      '/admin/detalleproducto/edit',
+      child: (_) {
+        final detalle = Modular.args.data as DetalleProducto;
+        return DetalleProductoEditPage(detalle: detalle);
+      },
+    );
 
     // Admin – Categorías
     r.child('/admin/categorias', child: (_) => const CategoriaListPage());
-    r.child('/admin/categorias/create', child: (_) => const CategoriaCreatePage());
-    r.child('/admin/categorias/edit', child: (_) {
-      final categoria = Modular.args.data as Categoria;
-      return CategoriaEditPage(categoria: categoria);
-    });
+    r.child(
+      '/admin/categorias/create',
+      child: (_) => const CategoriaCreatePage(),
+    );
+    r.child(
+      '/admin/categorias/edit',
+      child: (_) {
+        final categoria = Modular.args.data as Categoria;
+        return CategoriaEditPage(categoria: categoria);
+      },
+    );
 
+    // Admin – Pedidos & ciclos
+    r.child('/admin/pedidos', child: (_) => const PedidosListPage());
+    r.child('/admin/ciclos-entrega', child: (_) => const CiclosEntregaPage());
   }
 }
