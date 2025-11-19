@@ -3,9 +3,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/services/postgresql/detalleproducto/detalleproducto_service.dart';
 import 'package:quimisol/features/admin/detalleproducto/data/models/detalleproducto_model.dart';
 import 'package:quimisol/core/theme/palette.dart';
-
+import '../widgets/detalleproducto_modal.dart';
 import '../../../../shared/buttons/btn_floating_custom.dart';
 import '../../../../shared/widgets/delete_dialog.dart';
+
 
 class DetalleProductoListPage extends StatefulWidget {
   const DetalleProductoListPage({super.key});
@@ -147,9 +148,13 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
                           : _ModernDataTable(
                               detalles: detallesFiltrados,
                               onEdit: (detalle) async {
-                                await Modular.to.pushNamed('/admin/detalleproducto/edit', arguments: detalle);
-                                await _cargarDetalles();
-                              },
+                              await showDetalleProductoModal(
+                                context: context,
+                                detalle: detalle,
+                              );
+                              await _cargarDetalles();
+                            },
+
                               onDelete: (detalle) => _confirmarEliminar(context, detalle),
                             ),
                     ],
@@ -166,7 +171,7 @@ class _DetalleProductoListPageState extends State<DetalleProductoListPage> {
                 label: "Nuevo detalle",
                 icon: Icons.add,
                 onPressed: () async {
-                  await Modular.to.pushNamed('/admin/detalleproducto/create');
+                  await showDetalleProductoModal(context: context);
                   await _cargarDetalles();
                 },
               ),
