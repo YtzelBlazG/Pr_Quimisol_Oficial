@@ -57,40 +57,52 @@ const detalleProductoRoutes = require('./modules/detalleproducto/detalleproducto
 const carritoRoutes = require('./modules/carrito/carrito.router');
 const favoritosRoutes = require('./modules/favoritos/favoritos.router');
 
-// --- Pedidos (LO NUEVO)
+// --- Pedidos
 const pedidoRouter = require('./modules/pedidos/pedido.router');
+
+// --- Ubicación-Pedido
+const ubicacionPedidoRouter = require('./modules/ubicacion-pedido/ubicacionPedido.router');
+
+// --- Ciclos de Entrega
+const cicloEntregaRouter = require('./modules/ciclo-entrega/ciclo-entrega.router');
 
 // =============================
 // Montaje de Rutas
 // =============================
-// Nota: el orden importa; primero monta las rutas, luego los middlewares de cierre.
 
-// --- Núcleo (auth, personas, ubicaciones, usuarios)
+// Núcleo (auth, personas, ubicaciones, usuarios)
 app.use('/auth', authRouter);
 app.use('/personas', personaRouter);
 app.use('/ubicaciones', ubicacionRouter);
 app.use('/usuarios', usuarioRouter);
 
-// --- Mail
+// Mail
 app.use('/mail', mailRouter);
 
-// --- Dashboard / Admin
+// Dashboard / Admin
 app.use('/ai/dashboard', aiDashboardRouter);
 app.use('/admin', adminSummaryRouter);
 
-// --- Productos / Unidades / Extras
+// Productos / Unidades / Extras
 app.use('/productos', productoRouter);
 app.use('/unidades', unidadRouter);
 app.use('/detalleproducto', detalleProductoRoutes);
 app.use('/carrito', carritoRoutes);
 app.use('/favoritos', favoritosRoutes);
 
-// --- Pedidos (cabecera + detalles, crear desde carrito, listar por usuario)
+// Pedidos (cabecera + detalles, crear desde carrito, listar por usuario, repartidor, etc.)
 app.use('/pedidos', pedidoRouter);
+
+// Ubicación-Pedido (relación pedido ↔ ubicaciones)
+app.use('/ubicacion-pedido', ubicacionPedidoRouter);
+
+// Ciclos de entrega (planificación mensual de entregas)
+app.use('/ciclos-entrega', cicloEntregaRouter);
 
 // =============================
 // Middlewares de cierre
 // =============================
+
 // 404 para rutas no definidas
 app.use(notFound);
 
@@ -101,6 +113,8 @@ app.use(errorHandler);
 // Boot (levantar servidor)
 // =============================
 const PORT = process.env.PORT || 3005;
-app.listen(PORT, () => {
-  console.log(`🚀 API en http://localhost:${PORT}`);
+const HOST = '0.0.0.0'; // 👈 importante para que responda también al celular
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 API en http://${HOST}:${PORT}`);
 });
