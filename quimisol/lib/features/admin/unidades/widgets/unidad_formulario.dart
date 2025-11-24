@@ -65,7 +65,7 @@ class _UnidadFormularioState extends State<UnidadFormulario> {
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Palette.primary,
+                backgroundColor: Palette.button,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 elevation: 6,

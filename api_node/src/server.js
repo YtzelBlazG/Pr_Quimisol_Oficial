@@ -56,8 +56,9 @@ const unidadRouter = require('./modules/unidad/unidad.router');
 const detalleProductoRoutes = require('./modules/detalleproducto/detalleproducto.router');
 const carritoRoutes = require('./modules/carrito/carrito.router');
 const favoritosRoutes = require('./modules/favoritos/favoritos.router');
+const categoriaRoutes = require('./modules/categoria/categoria.router');
 
-// --- Pedidos
+// --- Pedidos 
 const pedidoRouter = require('./modules/pedidos/pedido.router');
 
 // --- Ubicación-Pedido
@@ -74,6 +75,8 @@ const cicloEntregaRouter = require('./modules/ciclo-entrega/ciclo-entrega.router
 app.use('/auth', authRouter);
 app.use('/personas', personaRouter);
 app.use('/ubicaciones', ubicacionRouter);
+app.use('/ubicacion',  ubicacionRouter);
+
 app.use('/usuarios', usuarioRouter);
 
 // Mail
@@ -89,6 +92,7 @@ app.use('/unidades', unidadRouter);
 app.use('/detalleproducto', detalleProductoRoutes);
 app.use('/carrito', carritoRoutes);
 app.use('/favoritos', favoritosRoutes);
+app.use('/categorias', categoriaRoutes);
 
 // Pedidos (cabecera + detalles, crear desde carrito, listar por usuario, repartidor, etc.)
 app.use('/pedidos', pedidoRouter);

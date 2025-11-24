@@ -30,7 +30,7 @@ import 'package:quimisol/features/distributor/home/screens/home_distributor_page
 
 import 'package:quimisol/features/home/screens/home_guest_page.dart';
 import 'package:quimisol/features/home/screens/home_user_page.dart';
-
+import 'package:quimisol/features/locations/screens/locations_list_page.dart';
 // ====== PAGES CATEGORIAS ======
 import 'package:quimisol/features/admin/categorias/page/categoria_create_page.dart';
 import 'package:quimisol/features/admin/categorias/page/categoria_edit_page.dart';
@@ -123,6 +123,10 @@ class AppModule extends Module {
     r.child('/', child: (_) => const SplashScreen());
     r.child('/home-guest', child: (_) => const HomeGuestPage());
     r.child('/home-user', child: (_) => const HomeUserPage());
+    r.child(
+      '/locations/add',
+      child: (_) => AddLocationMapPage(baseUrl: Env.apiBaseUrl),
+    );
     r.child('/favoritos', child: (_) => const FavoritosPage());
 
     // Repartidor
@@ -168,7 +172,10 @@ class AppModule extends Module {
 
     // Admin – Productos
     r.child('/admin/productos', child: (_) => const ProductoListPage());
-    r.child('/admin/productos/create', child: (_) => const ProductoCreatePage());
+    r.child(
+      '/admin/productos/create',
+      child: (_) => const ProductoCreatePage(),
+    );
     r.child(
       '/admin/productos/edit',
       child: (_) {

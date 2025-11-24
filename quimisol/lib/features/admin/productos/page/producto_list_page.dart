@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/services/postgresql/productos/producto_service.dart';
 import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
 import 'package:quimisol/core/theme/palette.dart';
+import 'package:quimisol/features/admin/productos/widgets/producto_modal.dart';
 import '../../../../shared/widgets/delete_dialog.dart';
 
 class ProductoListPage extends StatefulWidget {
@@ -98,17 +99,21 @@ class _ProductoListPageState extends State<ProductoListPage> {
     );
   }
 
-  Future<void> _irACrear() async {
-    await Modular.to.pushNamed('/admin/productos/create');
-    if (!mounted) return;
-    await _cargarProductos();
-  }
+ Future<void> _irACrear() async {
+  await showProductoModal(context: context);
+  if (!mounted) return;
+  await _cargarProductos();
+}
 
-  Future<void> _irAEditar(Producto p) async {
-    await Modular.to.pushNamed('/admin/productos/edit', arguments: p);
-    if (!mounted) return;
-    await _cargarProductos();
-  }
+Future<void> _irAEditar(Producto p) async {
+  await showProductoModal(
+    context: context,
+    producto: p,
+  );
+  if (!mounted) return;
+  await _cargarProductos();
+}
+
 
   @override
   Widget build(BuildContext context) {

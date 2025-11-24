@@ -34,4 +34,8 @@ class PlaceSuggestion {
       city: city,
     );
   }
+
+  String get provider => 'mapbox';   // de momento todo viene de mapbox
+  String get title => name;
+  String get subtitle => placeName;
 }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/features/admin/categorias/data/categoria_model.dart';
+import 'package:quimisol/features/admin/categorias/widgets/categoria_modal.dart';
+import 'package:quimisol/shared/widgets/delete_dialog.dart';
 import '../controllers/categoria_controller.dart';
 
 class CategoriaListPage extends StatefulWidget {
@@ -48,33 +50,32 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
   }
 
   void _confirmarEliminar(Categoria categoria) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text('¿Seguro que deseas eliminar "${categoria.nombre}"?'),
-        actions: [
-          TextButton(
-            child: const Text('Cancelar'),
-            onPressed: () => Navigator.pop(context),
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.delete),
-            label: const Text('Eliminar'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+  showDialog(
+    context: context,
+    builder: (_) => ConfirmDeleteDialog(
+      title: 'Confirmar eliminación',
+      message: '¿Seguro que deseas eliminar "${categoria.nombre}"?',
+      onConfirm: () async {
+        try {
+          await controlador.borrarCategoria(categoria.id);
+          await _cargarYFiltrar();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Categoría eliminada')),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo eliminar la categoría'),
             ),
-            onPressed: () async {
-              Navigator.pop(context);
-              await controlador.borrarCategoria(categoria.id);
-              await _cargarYFiltrar();
-            },
-          ),
-        ],
-      ),
-    );
-  }
+          );
+        }
+      },
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -152,9 +153,9 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                           : _ModernDataTable(
                               categorias: filtradas,
                               onEdit: (categoria) async {
-                                await Modular.to.pushNamed(
-                                  '/admin/categorias/edit',
-                                  arguments: categoria,
+                                await showCategoriaModal(
+                                  context: context,
+                                  categoria: categoria,
                                 );
                                 await _cargarYFiltrar();
                               },
@@ -181,7 +182,7 @@ class _CategoriaListPageState extends State<CategoriaListPage> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
                 elevation: 10,
                 onPressed: () async {
-                  await Modular.to.pushNamed('/admin/categorias/create');
+                  await showCategoriaModal(context: context);
                   await _cargarYFiltrar();
                 },
               ),

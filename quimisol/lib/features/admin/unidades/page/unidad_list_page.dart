@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/features/admin/unidades/data/models/unidad_model.dart';
+import 'package:quimisol/features/admin/unidades/widgets/unidad_modal.dart';
 import '../../../../shared/buttons/btn_floating_custom.dart';
 import '../../../../shared/widgets/delete_dialog.dart';
 import '../controllers/unidad_controller.dart';
@@ -129,8 +130,12 @@ class _UnidadListPageState extends State<UnidadListPage> {
                               ? _buildEmptyState(isMobile)
                               : _ModernUnidadTable(
                                   unidades: filtradas,
-                                  onEdit: (unidad) async {
+                                  /*onEdit: (unidad) async {
                                     await Modular.to.pushNamed('/admin/unidades/edit', arguments: unidad);
+                                    await _cargarYFiltrar();
+                                  },*/
+                                  onEdit: (unidad) async {
+                                    await showUnidadModal(context: context, unidad: unidad);
                                     await _cargarYFiltrar();
                                   },
                                   onDelete: (unidad) => _confirmarEliminar(context, unidad),
@@ -151,8 +156,12 @@ class _UnidadListPageState extends State<UnidadListPage> {
               child: FloatingActionButtonCustom(
                 label: isMobile ? "Nueva" : "Nueva unidad",
                 icon: Icons.add,
-                onPressed: () async {
+               /* onPressed: () async {
                   await Modular.to.pushNamed('/admin/unidades/create');
+                  await _cargarYFiltrar();
+                },*/
+                onPressed: () async {
+                  await showUnidadModal(context: context);
                   await _cargarYFiltrar();
                 },
               ),
@@ -284,9 +293,11 @@ class _ModernUnidadTable extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _ActionButton(icon: Icons.edit, color: Palette.primary, onTap: () => onEdit(unidad), tooltip: "Editar"),
+                          _ActionButton(icon: Icons.edit, color: Palette.primary, 
+                          onTap: () => onEdit(unidad), tooltip: "Editar"),
                           const SizedBox(width: 12),
-                          _ActionButton(icon: Icons.delete, color: Colors.red.shade600, onTap: () => onDelete(unidad), tooltip: "Eliminar"),
+                          _ActionButton(icon: Icons.delete, color: Colors.red.shade600, 
+                          onTap: () => onDelete(unidad), tooltip: "Eliminar"),
                         ],
                       ),
                     ),
@@ -387,7 +398,7 @@ class _ActionButton extends StatelessWidget {
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
             child: Icon(icon, size: 18, color: color),
           ),
         ),
