@@ -29,7 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final List<Map<String, String>> _ubicaciones = [];
 
   // 🔧 API base
-  static const String _baseUrl = "http://192.168.213.85:3005";
+  static const String _baseUrl = "http://10.192.87.85:3005";
   late final LocationsService _locationsService = LocationsService(
     baseUrl: _baseUrl,
   );

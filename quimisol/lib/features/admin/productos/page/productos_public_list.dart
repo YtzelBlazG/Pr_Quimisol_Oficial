@@ -36,18 +36,15 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final favoritosProvider = Provider.of<FavoritosProvider>(
-      context,
-      listen: false,
-    );
+    final favoritosProvider =
+        Provider.of<FavoritosProvider>(context, listen: false);
     favoritosProvider.checkAndUpdateUsuario();
   }
 
   Future<void> cargarCategorias() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://192.168.213.85:3005/categorias'),
-      );
+      final response =
+          await http.get(Uri.parse('http://10.192.87.85:3005/categorias'));
       if (response.statusCode == 200) {
         setState(() {
           categorias = jsonDecode(response.body);
@@ -62,9 +59,8 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
 
   Future<void> cargarProductos() async {
     try {
-      final response = await http.get(
-        Uri.parse('http://192.168.213.85:3005/productos'),
-      );
+      final response =
+          await http.get(Uri.parse('http://10.192.87.85:3005/productos'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         setState(() {
@@ -87,38 +83,35 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
     List<dynamic> filtrados = productos.where((p) {
       final matchesCategoria =
           categoriaSeleccionada == null ||
-          p['idcategoria'] == categoriaSeleccionada;
-      final matchesTexto =
-          textoBusqueda.isEmpty ||
-          p['nombre'].toString().toLowerCase().contains(
-            textoBusqueda.toLowerCase(),
-          ) ||
-          p['codigo'].toString().toLowerCase().contains(
-            textoBusqueda.toLowerCase(),
-          );
+              p['idcategoria'] == categoriaSeleccionada;
+      final matchesTexto = textoBusqueda.isEmpty ||
+          p['nombre']
+              .toString()
+              .toLowerCase()
+              .contains(textoBusqueda.toLowerCase()) ||
+          p['codigo']
+              .toString()
+              .toLowerCase()
+              .contains(textoBusqueda.toLowerCase());
       return matchesCategoria && matchesTexto;
     }).toList();
 
     switch (ordenSeleccionado) {
       case 'precio_asc':
-        filtrados.sort(
-          (a, b) => (a['precio'] ?? 0).compareTo(b['precio'] ?? 0),
-        );
+        filtrados
+            .sort((a, b) => (a['precio'] ?? 0).compareTo(b['precio'] ?? 0));
         break;
       case 'precio_desc':
-        filtrados.sort(
-          (a, b) => (b['precio'] ?? 0).compareTo(a['precio'] ?? 0),
-        );
+        filtrados
+            .sort((a, b) => (b['precio'] ?? 0).compareTo(a['precio'] ?? 0));
         break;
       case 'nombre_asc':
-        filtrados.sort(
-          (a, b) => (a['nombre'] ?? '').compareTo(b['nombre'] ?? ''),
-        );
+        filtrados
+            .sort((a, b) => (a['nombre'] ?? '').compareTo(b['nombre'] ?? ''));
         break;
       case 'nombre_desc':
-        filtrados.sort(
-          (a, b) => (b['nombre'] ?? '').compareTo(a['nombre'] ?? ''),
-        );
+        filtrados
+            .sort((a, b) => (b['nombre'] ?? '').compareTo(a['nombre'] ?? ''));
         break;
     }
 
@@ -142,18 +135,34 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
     if (loading) return const Center(child: CircularProgressIndicator());
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF3E6FA),
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Productos'),
-        backgroundColor: Palette.primary,
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF3E6FA),
+        elevation: 0,
+        centerTitle: true,
+        title: Image.asset(
+          'assets/images/logo-quimisol.png',
+          height: 60,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Palette.primary),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: Column(
         children: [
           // 🔍 Barra de búsqueda + filtros
           Container(
-            color: Colors.purple[50],
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.purple[50],
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Column(
               children: [
@@ -164,7 +173,8 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
                     prefixIcon: const Icon(Icons.search),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
@@ -179,10 +189,10 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
                     Expanded(
                       child: DropdownButton<int?>(
                         isExpanded: true,
-                        value:
-                            categorias.any(
-                              (cat) => cat['id'] == categoriaSeleccionada,
-                            )
+                        value: categorias.any(
+                                  (cat) =>
+                                      cat['id'] == categoriaSeleccionada,
+                                )
                             ? categoriaSeleccionada
                             : null,
                         hint: const Text("Categoría"),
@@ -243,24 +253,27 @@ class _ProductosPublicListState extends State<ProductosPublicList> {
 
           // 🧾 Lista de productos
           Expanded(
-            child: productosFiltrados.isEmpty
-                ? const Center(child: Text('No hay productos disponibles.'))
-                : GridView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: productosFiltrados.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 2.2 / 3,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                        ),
-                    itemBuilder: (context, index) {
-                      final producto = productosFiltrados[index];
-                      producto['categoria_nombre'] ??= 'Sin categoría';
-                      return ProductoCard(producto: producto);
-                    },
-                  ),
+            child: Container(
+              color: Colors.grey[50],
+              child: productosFiltrados.isEmpty
+                  ? const Center(child: Text('No hay productos disponibles.'))
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: productosFiltrados.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 2.2 / 3,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final producto = productosFiltrados[index];
+                        producto['categoria_nombre'] ??= 'Sin categoría';
+                        return ProductoCard(producto: producto);
+                      },
+                    ),
+            ),
           ),
         ],
       ),

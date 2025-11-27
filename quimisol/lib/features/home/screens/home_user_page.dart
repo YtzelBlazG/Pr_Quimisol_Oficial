@@ -1,18 +1,18 @@
-// ... imports existentes
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:provider/provider.dart';
+
 import 'package:quimisol/core/services/postgresql/productos/producto_service.dart';
 import 'package:quimisol/core/storage/auth_storage.dart';
 import 'package:quimisol/core/theme/palette.dart';
 import 'package:quimisol/core/providers/favoritos_provider.dart';
-import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
+
 import 'package:quimisol/features/admin/widgets/BeneficioItem.dart';
 import 'package:quimisol/features/admin/widgets/categoryitem.dart';
 import 'package:quimisol/features/admin/productos/widgets/producto_card.dart';
 import 'package:quimisol/features/admin/productos/page/productos_public_list.dart';
-import 'package:quimisol/features/home/screens/home_user_perfil.dart';
 import 'package:quimisol/features/public/pages/carrito_page.dart';
+import 'package:quimisol/features/home/screens/home_user_perfil.dart';
 
 class HomeUserPage extends StatefulWidget {
   const HomeUserPage({super.key});
@@ -76,7 +76,6 @@ class _HomeUserPageState extends State<HomeUserPage> {
                   ),
                 ),
                 Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
                       'Soluciones industriales para tu negocio',
@@ -99,9 +98,7 @@ class _HomeUserPageState extends State<HomeUserPage> {
                           ),
                         ),
                         onPressed: () {
-                          setState(
-                            () => _currentIndex = 1,
-                          ); // 🔁 cambia a Productos
+                          setState(() => _currentIndex = 1);
                         },
                         child: const Text('Ver productos'),
                       ),
@@ -114,7 +111,6 @@ class _HomeUserPageState extends State<HomeUserPage> {
 
           const SizedBox(height: 24),
 
-          // Beneficios
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: const [
@@ -124,13 +120,14 @@ class _HomeUserPageState extends State<HomeUserPage> {
               BeneficioItem(icon: Icons.store, label: 'Industria local'),
             ],
           ),
+
           const SizedBox(height: 24),
 
-          // Categorías
           const Text(
             'Categorías',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -138,38 +135,32 @@ class _HomeUserPageState extends State<HomeUserPage> {
               CategoriaItem(icon: Icons.cleaning_services, label: 'Limpieza'),
               CategoriaItem(icon: Icons.bubble_chart, label: 'Detergentes'),
               CategoriaItem(icon: Icons.inventory, label: 'Insumos'),
-              CategoriaItem(
-                icon: Icons.medical_services,
-                label: 'Desinfectantes',
-              ),
+              CategoriaItem(icon: Icons.medical_services, label: 'Desinfectantes'),
             ],
           ),
+
           const SizedBox(height: 24),
 
-          // Productos destacados
           const Text(
             'Productos destacados',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
+
           SizedBox(
             height: 280,
-            child: Scrollbar(
+            child: ListView.separated(
               controller: _scrollController,
-              thumbVisibility: true,
-              child: ListView.separated(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                itemCount: productos.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final producto = productos[index];
-                  return SizedBox(
-                    width: 180,
-                    child: ProductoCard(producto: producto),
-                  );
-                },
-              ),
+              scrollDirection: Axis.horizontal,
+              itemCount: productos.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final producto = productos[index];
+                return SizedBox(
+                  width: 180,
+                  child: ProductoCard(producto: producto),
+                );
+              },
             ),
           ),
         ],
@@ -177,20 +168,6 @@ class _HomeUserPageState extends State<HomeUserPage> {
     );
   }
 
-  /// 🔒 Logout completo
-  Future<void> _onLogout() async {
-    await AuthStorage.clear();
-    Provider.of<FavoritosProvider>(context, listen: false).clear();
-    Modular.to.navigate('/home-guest');
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  /// 🌍 Cuerpo según pestaña
   Widget _buildPage(int index) {
     switch (index) {
       case 0:
@@ -210,20 +187,26 @@ class _HomeUserPageState extends State<HomeUserPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3E6FA),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: const Color(0xFFF3E6FA),
-        elevation: 0,
-        centerTitle: true,
-        title: Image.asset('assets/images/logo-quimisol.png', height: 60),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Palette.primary),
-            onPressed: () {},
-          ),
-        ],
-      ),
+
+      /// ⬇ SOLO el home tiene AppBar
+      appBar: _currentIndex == 0
+          ? AppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: const Color(0xFFF3E6FA),
+              elevation: 0,
+              centerTitle: true,
+              title: Image.asset('assets/images/logo-quimisol.png', height: 60),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications, color: Palette.primary),
+                  onPressed: () {},
+                ),
+              ],
+            )
+          : null,
+
       body: _buildPage(_currentIndex),
+
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: Palette.primary,
@@ -232,10 +215,7 @@ class _HomeUserPageState extends State<HomeUserPage> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
           BottomNavigationBarItem(icon: Icon(Icons.store), label: 'Productos'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Carrito',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Carrito'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
       ),

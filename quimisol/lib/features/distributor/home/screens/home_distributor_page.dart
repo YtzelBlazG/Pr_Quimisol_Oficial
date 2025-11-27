@@ -59,9 +59,8 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
       if (idPersona == null) {
         throw Exception('No se encontró idpersona en sesión.');
       }
-      _idPersona = idPersona; // 👈 guardamos para usar luego
+      _idPersona = idPersona;
 
-      // Ruta: /pedidos/repartidores/:idPersona/pedidos
       final uri = Uri.parse(
         '$_baseUrl/pedidos/repartidores/$idPersona/pedidos',
       );
@@ -89,7 +88,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
       _loading = false;
       if (mounted) setState(() {});
 
-      // Luego de cargar pedidos, obtenemos ubicación y ordenamos
       await _obtenerUbicacionYOrdenar();
     } catch (e) {
       setState(() {
@@ -130,7 +128,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
       _myLng = pos.longitude;
       _locationError = null;
 
-      // Calcular distancia para cada pedido (a su ubicación principal)
       for (final p in _pedidos) {
         final latRaw = p['ubicacion_latitud'];
         final lngRaw = p['ubicacion_longitud'];
@@ -150,7 +147,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
         p['_distancia_km'] = _distanceInKm(_myLat!, _myLng!, lat, lng);
       }
 
-      // Ordenar: primero los más cercanos
       _pedidos.sort((a, b) {
         final da = a['_distancia_km'] as double?;
         final db = b['_distancia_km'] as double?;
@@ -168,13 +164,13 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     }
   }
 
-  /// Distancia aproximada en KM (Haversine)
   double _distanceInKm(double lat1, double lon1, double lat2, double lon2) {
     const double r = 6371; // km
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
 
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_deg2rad(lat1)) *
             math.cos(_deg2rad(lat2)) *
             math.sin(dLon / 2) *
@@ -186,7 +182,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
 
   double _deg2rad(double deg) => deg * (math.pi / 180.0);
 
-  /// Distancia desde mi posición a una lat/lng cualquiera (para cada sucursal)
   double? _distanceFromMe(dynamic latRaw, dynamic lngRaw) {
     if (_myLat == null || _myLng == null) return null;
     final lat = double.tryParse(latRaw?.toString() ?? '');
@@ -198,16 +193,38 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff8f6fb),
+      backgroundColor: Palette.gradientStart,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor: Palette.primary,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: const Text(
-          'Panel de repartidor',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
         centerTitle: true,
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Panel de entregas',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+            ),
+            Text(
+              'Operaciones Quimisol',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.white.withOpacity(0.9),
+              ),
+            ),
+          ],
+        ),
+        flexibleSpace: const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Palette.gradientStart, Palette.gradientEnd],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Cerrar sesión',
@@ -216,13 +233,52 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
           ),
         ],
       ),
-      body: Padding(padding: const EdgeInsets.all(16), child: _buildBody()),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Palette.gradientStart, Palette.gradientEnd],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Palette.fieldBg,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: _buildBody(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: Palette.primary),
+      );
     }
 
     if (_error) {
@@ -246,16 +302,16 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
             const SizedBox(height: 24),
             SizedBox(
               width: 260,
-              height: 50,
+              height: 48,
               child: ElevatedButton.icon(
                 onPressed: _cargarPedidos,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Palette.primary,
+                  backgroundColor: Palette.button,
                   shape: const StadiumBorder(),
+                  elevation: 0,
                 ),
                 icon: const Icon(Icons.refresh),
-                label:
-                    const Text('Reintentar', style: TextStyle(fontSize: 16)),
+                label: const Text('Reintentar', style: TextStyle(fontSize: 16)),
               ),
             ),
           ],
@@ -277,7 +333,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
       );
     }
 
-    // Agrupar por ciclo (anio-mes)
     final Map<String, List<Map<String, dynamic>>> porCiclo = {};
     for (final p in _pedidos) {
       final anio = p['anio']?.toString() ?? '';
@@ -287,7 +342,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     }
 
     final ciclosOrdenados = porCiclo.keys.toList()
-      ..sort((a, b) => b.compareTo(a)); // más recientes primero
+      ..sort((a, b) => b.compareTo(a));
 
     return Column(
       children: [
@@ -301,8 +356,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                 Expanded(
                   child: Text(
                     _locationError!,
-                    style:
-                        const TextStyle(fontSize: 12, color: Colors.red),
+                    style: const TextStyle(fontSize: 12, color: Colors.red),
                   ),
                 ),
               ],
@@ -389,7 +443,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     }
   }
 
-  /// Devuelve {detalles: List, ubicaciones: List}
   Future<Map<String, dynamic>> _cargarDetalleYUbicaciones(int idPedido) async {
     final uri = Uri.parse('$_baseUrl/pedidos/$idPedido');
     final resp = await http.get(
@@ -408,7 +461,9 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
 
   Widget _buildPedidoCard(Map<String, dynamic> p) {
     final idRaw = p['idpedido'] ?? p['id'] ?? p['iddetalle'] ?? p['id'];
-    final id = idRaw is int ? idRaw : int.tryParse(idRaw?.toString() ?? '') ?? 0;
+    final id = idRaw is int
+        ? idRaw
+        : int.tryParse(idRaw?.toString() ?? '') ?? 0;
 
     final String codigoPedido =
         (p['codigo_publico'] ??
@@ -419,9 +474,9 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
     final double baseTotal = double.tryParse((p['total'] ?? 0).toString()) ?? 0;
     final double totalConUbicaciones =
         double.tryParse(
-              (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
-            ) ??
-            baseTotal;
+          (p['total_con_ubicaciones'] ?? p['total'] ?? 0).toString(),
+        ) ??
+        baseTotal;
 
     final int ubicacionesCount =
         int.tryParse((p['ubicaciones_count'] ?? 0).toString()) ?? 0;
@@ -542,7 +597,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
         ),
         trailing: Text(
           'Bs ${totalConUbicaciones.toStringAsFixed(2)}',
-          style: TextStyle(
+          style: const TextStyle(
             color: Palette.primary,
             fontWeight: FontWeight.bold,
             fontSize: 16,
@@ -564,7 +619,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
 
               final children = <Widget>[];
 
-              // DETALLES
               if (det.isNotEmpty) {
                 children.addAll(
                   det.map((d) {
@@ -614,7 +668,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                 );
               }
 
-              // UBICACIONES
               children.add(const SizedBox(height: 10));
               children.add(
                 const Padding(
@@ -643,18 +696,19 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                     final ciudad = (u['ciudad'] ?? '').toString().trim();
                     final lat = u['latitud'];
                     final lng = u['longitud'];
-                    final estadoEntrega =
-                        (u['estado_entrega'] ?? 'pedido').toString();
+                    final estadoEntrega = (u['estado_entrega'] ?? 'pedido')
+                        .toString();
                     final esEntregada = estadoEntrega == 'entregado';
 
                     final distanciaKm = _distanceFromMe(lat, lng);
 
-                    // 👇 repartidor asignado a esta ubicación (si existe)
-                    final int? idPersonaRepartidor = u['idpersona_repartidor'] != null
+                    final int? idPersonaRepartidor =
+                        u['idpersona_repartidor'] != null
                         ? int.tryParse(u['idpersona_repartidor'].toString())
                         : null;
 
-                    final bool tomadaPorOtro = idPersonaRepartidor != null &&
+                    final bool tomadaPorOtro =
+                        idPersonaRepartidor != null &&
                         _idPersona != null &&
                         idPersonaRepartidor != _idPersona;
 
@@ -662,7 +716,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                       final idUbicacion = u['idubicacion'] ?? u['id'];
                       if (idUbicacion == null) return;
 
-                      // Si está tomada por otro repartidor, no dejamos entrar
                       if (tomadaPorOtro) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -687,7 +740,6 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                         },
                       );
 
-                      // Al volver, recargamos pedidos para refrescar estados
                       if (mounted) {
                         _cargarPedidos();
                       }
@@ -700,9 +752,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                     if (estadoEntrega == 'pedido') {
                       chipColor = Colors.grey.shade100;
                       chipText = Colors.grey.shade800;
-                      chipTextLabel = tomadaPorOtro
-                          ? 'Tomada'
-                          : 'Pendiente';
+                      chipTextLabel = tomadaPorOtro ? 'Tomada' : 'Pendiente';
                     } else if (estadoEntrega == 'en_camino') {
                       chipColor = Colors.blue.shade50;
                       chipText = Colors.blue.shade700;
@@ -726,8 +776,9 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: ListTile(
-                        onTap:
-                            esEntregada || tomadaPorOtro ? null : () => _abrirUbicacion(),
+                        onTap: esEntregada || tomadaPorOtro
+                            ? null
+                            : () => _abrirUbicacion(),
                         leading: const CircleAvatar(
                           child: Icon(Icons.place, color: Colors.white),
                           backgroundColor: Colors.blue,
@@ -859,7 +910,7 @@ class _HomeRepartidorPageState extends State<HomeRepartidorPage> {
                               )
                             else
                               ElevatedButton.icon(
-                                onPressed: () => _abrirUbicacion(),
+                                onPressed: _abrirUbicacion,
                                 icon: const Icon(Icons.map_outlined, size: 14),
                                 label: const Text(
                                   'Ver',

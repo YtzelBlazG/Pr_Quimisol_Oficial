@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:quimisol/features/admin/unidades/data/models/unidad_model.dart';
 
 class UnidadService {
-  final String baseUrl = "http://192.168.213.85:3005/unidades";
+  final String baseUrl = "http://10.192.87.85:3005/unidades";
 
   Future<List<Unit>> obtenerUnidades() async {
     final response = await http.get(Uri.parse(baseUrl));

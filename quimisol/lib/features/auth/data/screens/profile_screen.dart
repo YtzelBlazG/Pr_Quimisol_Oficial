@@ -29,7 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   List<Map<String, dynamic>> _ubicaciones = [];
 
-  static const String _baseUrl = "http://192.168.213.85:3005";
+  static const String _baseUrl = "http://10.192.87.85:3005";
   late final PersonService _personService = PersonService(baseUrl: _baseUrl);
 
   @override

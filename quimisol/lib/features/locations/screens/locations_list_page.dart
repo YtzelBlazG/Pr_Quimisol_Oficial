@@ -8,6 +8,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:quimisol/core/config/env.dart';
 import 'package:quimisol/core/storage/auth_storage.dart';
 import 'package:quimisol/core/services/postgresql/locations/locations_service.dart';
+import 'package:quimisol/core/theme/palette.dart';
 
 // IMPORTANTE: LocationViewerPage
 import 'package:quimisol/features/locations/screens/location_edit_page.dart';
@@ -194,9 +195,6 @@ class _LocationsListPageState extends State<LocationsListPage> {
 
   List<Widget> _buildGroupedList(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent = const Color(0xFFF48FB1); // 🌸 Rosa suave
-
     final groups = _groupByCity(_items);
 
     final orderedKeys = groups.keys.toList()
@@ -224,23 +222,23 @@ class _LocationsListPageState extends State<LocationsListPage> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: accent.withOpacity(0.06),
+                  color: Palette.button.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.location_city_rounded,
                       size: 16,
-                      color: accent,
+                      color: Palette.primary,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       title,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: colors.onSurface,
+                        color: Palette.ink,
                       ),
                     ),
                   ],
@@ -260,10 +258,10 @@ class _LocationsListPageState extends State<LocationsListPage> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Material(
-              color: colors.surface,
+              color: Palette.white,
               borderRadius: BorderRadius.circular(16),
-              elevation: 1.5,
-              shadowColor: Colors.black.withOpacity(0.08),
+              elevation: 2,
+              shadowColor: Colors.black.withOpacity(0.06),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () => _openOnMap(it),
@@ -273,15 +271,15 @@ class _LocationsListPageState extends State<LocationsListPage> {
                   child: Row(
                     children: [
                       Container(
-                        width: 40,
-                        height: 40,
+                        width: 42,
+                        height: 42,
                         decoration: BoxDecoration(
-                          color: accent.withOpacity(0.08),
+                          color: Palette.card,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.place_rounded,
-                          color: accent,
+                          color: Palette.primary,
                           size: 22,
                         ),
                       ),
@@ -296,6 +294,7 @@ class _LocationsListPageState extends State<LocationsListPage> {
                               overflow: TextOverflow.ellipsis,
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w600,
+                                color: Palette.ink,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -305,7 +304,7 @@ class _LocationsListPageState extends State<LocationsListPage> {
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colors.onSurface.withOpacity(0.7),
+                                  color: Palette.ink.withOpacity(0.7),
                                 ),
                               ),
                           ],
@@ -315,7 +314,7 @@ class _LocationsListPageState extends State<LocationsListPage> {
                       IconButton(
                         icon: Icon(
                           Icons.delete_outline_rounded,
-                          color: colors.error.withOpacity(0.9),
+                          color: Colors.red.shade400,
                         ),
                         tooltip: 'Eliminar ubicación',
                         onPressed: () => _delete(it['idubicacion'] as int),
@@ -340,81 +339,157 @@ class _LocationsListPageState extends State<LocationsListPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent = const Color(0xFFF48FB1); // 🌸 Rosa suave
 
     return Scaffold(
-      backgroundColor: colors.surfaceVariant.withOpacity(0.25),
-      appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 3,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Mis ubicaciones',
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFF48FB1), // rosa suave
-                Color.fromARGB(255, 253, 156, 189), // rosa un poco más fuerte
-              ],
-            ),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Palette.gradientStart, Palette.gradientEnd],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => _load(silent: true),
-              child: _items.isEmpty
-                  ? ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      children: [
-                        SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.7,
-                          child: ListEmpty(onAddPressed: _goToAdd),
-                        ),
-                      ],
-                    )
-                  : LayoutBuilder(
-                      builder: (context, constraints) {
-                        final maxWidth =
-                            constraints.maxWidth > 720 ? 720.0 : null;
-                        return Center(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: maxWidth ?? double.infinity,
+        child: Column(
+          children: [
+            const SizedBox(height: 60),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Palette.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Header con back + título
+                    Padding(
+                      padding:
+                          const EdgeInsets.fromLTRB(8, 12, 16, 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            onPressed: () => Modular.to.pop(),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new,
+                              size: 18,
+                              color: Palette.ink,
                             ),
-                            child: ListView(
-                              physics:
-                                  const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
-                                _HeaderSummary(
-                                  total: _items.length,
+                                Text(
+                                  'Mis ubicaciones',
+                                  style: theme.textTheme.titleMedium
+                                      ?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: Palette.ink,
+                                    fontSize: 18,
+                                  ),
                                 ),
-                                const SizedBox(height: 8),
-                                ..._buildGroupedList(context),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Administra tus direcciones guardadas.',
+                                  style: theme.textTheme.bodySmall
+                                      ?.copyWith(
+                                    color: Palette.ink.withOpacity(0.6),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: 4),
+
+                    Expanded(
+                      child: _loading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: Palette.primary,
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: () => _load(silent: true),
+                              color: Palette.primary,
+                              child: _items.isEmpty
+                                  ? ListView(
+                                      physics:
+                                          const AlwaysScrollableScrollPhysics(),
+                                      children: [
+                                        SizedBox(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.65,
+                                          child: ListEmpty(
+                                            onAddPressed: _goToAdd,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : LayoutBuilder(
+                                      builder: (context, constraints) {
+                                        final maxWidth =
+                                            constraints.maxWidth > 720
+                                                ? 720.0
+                                                : null;
+                                        return Center(
+                                          child: ConstrainedBox(
+                                            constraints: BoxConstraints(
+                                              maxWidth: maxWidth ??
+                                                  double.infinity,
+                                            ),
+                                            child: ListView(
+                                              physics:
+                                                  const AlwaysScrollableScrollPhysics(),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                              children: [
+                                                _HeaderSummary(
+                                                  total: _items.length,
+                                                ),
+                                                const SizedBox(height: 8),
+                                                ..._buildGroupedList(
+                                                  context,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
             ),
+          ],
+        ),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add_location_alt_outlined),
         label: const Text('Agregar ubicación'),
-        backgroundColor: accent,
-        foregroundColor: Colors.white,
+        backgroundColor: Palette.button,
+        foregroundColor: Palette.ink,
         onPressed: _goToAdd,
       ),
     );
@@ -432,8 +507,6 @@ class ListEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent = const Color(0xFFF48FB1); // 🌸 Rosa suave
 
     return Center(
       child: Padding(
@@ -444,7 +517,7 @@ class ListEmpty extends StatelessWidget {
             Icon(
               Icons.map_outlined,
               size: 72,
-              color: accent.withOpacity(0.5),
+              color: Palette.button.withOpacity(0.7),
             ),
             const SizedBox(height: 16),
             Text(
@@ -452,21 +525,22 @@ class ListEmpty extends StatelessWidget {
               textAlign: TextAlign.center,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
+                color: Palette.ink,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Añade tus sucursales o direcciones frecuentes para encontrarlas rápidamente en el mapa y usarlas en tus pedidos.',
+              'Añade tus sucursales o direcciones frecuentes para usarlas rápidamente en tus pedidos.',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurface.withOpacity(0.7),
+                color: Palette.ink.withOpacity(0.7),
               ),
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: accent,
-                foregroundColor: Colors.white,
+                backgroundColor: Palette.button,
+                foregroundColor: Palette.ink,
               ),
               onPressed: onAddPressed,
               icon: const Icon(Icons.add_location_alt_rounded),
@@ -487,13 +561,11 @@ class _HeaderSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final accent = const Color(0xFFF48FB1); // 🌸 Rosa suave
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: accent.withOpacity(0.06),
+        color: Palette.card,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -502,13 +574,13 @@ class _HeaderSummary extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.12),
+              color: Palette.button.withOpacity(0.6),
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               Icons.my_location_rounded,
               size: 20,
-              color: accent,
+              color: Palette.ink,
             ),
           ),
           const SizedBox(width: 12),
@@ -520,6 +592,7 @@ class _HeaderSummary extends StatelessWidget {
                   'Tus ubicaciones guardadas',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
+                    color: Palette.ink,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -528,7 +601,7 @@ class _HeaderSummary extends StatelessWidget {
                       ? 'Aún no has agregado ninguna ubicación'
                       : '$total ${total == 1 ? 'ubicación' : 'ubicaciones'} registradas',
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurface.withOpacity(0.7),
+                    color: Palette.ink.withOpacity(0.7),
                   ),
                 ),
               ],

@@ -647,17 +647,7 @@ class _LocationViewerPageState extends State<LocationViewerPage> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.explore_outlined),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Lat: ${_center.latitude.toStringAsFixed(6)} • Lng: ${_center.longitude.toStringAsFixed(6)}',
-                        ),
-                      ),
-                    ],
-                  ),
+                  
 
                   const SizedBox(height: 12),
 

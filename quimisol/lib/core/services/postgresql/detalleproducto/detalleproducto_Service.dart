@@ -4,7 +4,7 @@ import 'package:quimisol/features/admin/detalleproducto/data/models/detalleprodu
 
 class DetalleProductoService {
   final String baseUrl =
-      'http://192.168.213.85:3005/detalleproducto'; // ajusta si cambia
+      'http://10.192.87.85:3005/detalleproducto'; // ajusta si cambia
 
   // Obtener todos los detalles
   Future<List<DetalleProducto>> getDetalleProductos() async {

@@ -17,7 +17,7 @@ class _RequestCodeScreenState extends State<RequestCodeScreen> {
   final _codeCtrl = TextEditingController();
 
   // 🔧 AJUSTA el baseUrl según tu entorno
-  final _svc = MailRecoveryService(baseUrl: 'http://192.168.213.85:3005');
+  final _svc = MailRecoveryService(baseUrl: 'http://10.192.87.85:3005');
 
   bool _codeEnabled = false; // se activa luego de "ENVIAR CÓDIGO"
   bool _canContinue = false; // true = 6 dígitos
