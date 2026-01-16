@@ -1,779 +1,592 @@
+// lib/features/locations/screens/add_location_map_page.dart
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // RawKeyboardListener
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-import '../../../shared/buttons/app_button.dart';
+import 'package:quimisol/core/storage/auth_storage.dart';
+import 'package:quimisol/core/theme/palette.dart';
+import 'package:quimisol/core/services/postgresql/locations/locations_service.dart';
 
+/// ==============================
+/// CONFIG MAPBOX
+/// ==============================
+const String MAPBOX_TOKEN =
+    'pk.eyJ1Ijoic2ViYXMxMjciLCJhIjoiY21mMGhhdDRiMG5mbTJscHlnMGUweGlicSJ9.SVeyu-4RTAybmgRxhPxSWw';
+
+/// Forzar búsqueda y reverse a Bolivia
+const String _MB_COUNTRY = 'bo';
+
+/// BBox aproximado de Bolivia [minLon, minLat, maxLon, maxLat]
+const List<double> _BOLIVIA_BBOX = [-69.645, -22.9, -57.45, -9.68];
+
+/// Tweaks para consumo
+const _reverseDebounceMs = 600; // menos llamadas al mover mapa
+const _minMoveMetersToReverse = 25.0; // umbral por distancia
+
+/// ==============================
+/// PAGE
+/// ==============================
 class AddLocationMapPage extends StatefulWidget {
-  const AddLocationMapPage({super.key});
+  final String baseUrl;
+  const AddLocationMapPage({super.key, required this.baseUrl});
 
   @override
   State<AddLocationMapPage> createState() => _AddLocationMapPageState();
 }
 
 class _AddLocationMapPageState extends State<AddLocationMapPage> {
-  // 🔐 Mapbox (usa .env en producción)
-  static const String _mapboxToken =
-      'pk.eyJ1Ijoic2ViYXMxMjciLCJhIjoiY21mMGhhdDRiMG5mbTJscHlnMGUweGlicSJ9.SVeyu-4RTAybmgRxhPxSWw';
+  final _mapController = MapController();
+  final _searchCtrl = TextEditingController();
+  final _nombreCtrl = TextEditingController(); // ← Nombre de ubicación
 
-  // 🌎 Centro inicial (Cochabamba)
-  static const LatLng _initialTarget = LatLng(-17.3895, -66.1570);
+  // Estado UI
+  LatLng _center = const LatLng(-17.3895, -66.1568); // Cochabamba por defecto
+  bool _loadingAddr = false;
+  String _direccion = '';
+  String _ciudad = ''; // ← aquí guardaremos el DEPARTAMENTO
 
-  // 🗺️ Mapa
-  final MapController _mapController = MapController();
-  final List<Marker> _markers = [];
+  // Sugerencias
+  Timer? _searchDebouncer;
+  List<_PlaceSug> _sugs = [];
+  bool _showSug = false;
 
-  // 📍 Punto elegido
-  double? _lat;
-  double? _lng;
+  // Cache de sugerencias (30s)
+  final _searchCache = <String, _CacheEntry<List<_PlaceSug>>>{};
+  static const _searchCacheTtl = Duration(seconds: 30);
 
-  // 📝 Form
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _dirCtrl = TextEditingController();
-  final _cityCtrl = TextEditingController();
+  // Mi ubicación actual
+  LatLng? _myPos;
+  bool _locating = false;
 
-  bool _submitting = false;
-  bool _geocoding = false;
+  // Guardado
+  bool _saving = false;
 
-  // 📦 Panel deslizante
-  final _dragCtrl = DraggableScrollableController();
-  bool _expanded = false;
-
-  // 🔎 Buscador combinado (Mapbox + Nominatim)
-  final TextEditingController _searchCtrl = TextEditingController();
-  final FocusNode _searchFocus = FocusNode();
-  Timer? _debounce;
-  bool _searchLoading = false;
-  List<_PlaceSuggestion> _suggestions = [];
-  final Map<String, List<_PlaceSuggestion>> _cache = {};
-  int _selectedIndex = -1;
-  int _reqCounter = 0;
+  // Reverse geocode
+  Timer? _moveDebouncer;
+  LatLng? _lastReversePoint;
+  final _dist = const Distance();
 
   @override
   void initState() {
     super.initState();
-    _dragCtrl.addListener(() {
-      final exp = _dragCtrl.size >= 0.5;
-      if (exp != _expanded) setState(() => _expanded = exp);
+    // Centrar desde MI ubicación al abrir
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _goToMyLocation();
     });
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _dirCtrl.dispose();
-    _cityCtrl.dispose();
-    _dragCtrl.dispose();
+    _searchDebouncer?.cancel();
+    _moveDebouncer?.cancel();
     _searchCtrl.dispose();
-    _searchFocus.dispose();
-    _debounce?.cancel();
+    _nombreCtrl.dispose();
     super.dispose();
   }
 
-  // =================== Mapa ===================
-
-  void _onMapTap(TapPosition _, LatLng latLng) async {
-    _setPoint(latLng);
-    await _reverseFillMapbox(latLng.latitude, latLng.longitude);
-    _softExpand();
-  }
-
-  Future<void> _useCenterAsPoint() async {
-    final center = _mapController.camera.center;
-    _setPoint(center);
-    await _reverseFillMapbox(center.latitude, center.longitude);
-    _softExpand();
-  }
-
-  void _setPoint(LatLng latLng) {
-    _lat = latLng.latitude;
-    _lng = latLng.longitude;
-    _markers
-      ..clear()
-      ..add(
-        Marker(
-          point: latLng,
-          width: 40,
-          height: 40,
-          child: const Icon(Icons.place, size: 32, color: Colors.redAccent),
-        ),
+  // ==========================
+  // Permisos + ubicación actual
+  // ==========================
+  Future<bool> _ensureLocationReady() async {
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Activa el GPS para ubicarte.')),
       );
-    setState(() {});
+      return false;
+    }
+    LocationPermission perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+    }
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Permiso de ubicación denegado.')),
+      );
+      return false;
+    }
+    return true;
   }
 
-  Future<void> _reverseFillMapbox(double lat, double lng) async {
-    setState(() => _geocoding = true);
+  Future<void> _goToMyLocation() async {
+    if (_locating) return;
+    setState(() => _locating = true);
     try {
-      final info = await _reverseGeocodeMapbox(lat, lng);
-      _dirCtrl.text = info['direccion'] ?? _dirCtrl.text;
-      _cityCtrl.text = info['ciudad'] ?? _cityCtrl.text;
-    } finally {
-      if (mounted) setState(() => _geocoding = false);
-    }
-  }
+      final ok = await _ensureLocationReady();
+      if (!ok) return;
 
-  Future<Map<String, String>> _reverseGeocodeMapbox(
-    double lat,
-    double lng,
-  ) async {
-    final url =
-        'https://api.mapbox.com/geocoding/v5/mapbox.places/$lng,$lat.json'
-        '?access_token=$_mapboxToken&language=es&limit=1';
-    final resp = await http.get(Uri.parse(url));
-    if (resp.statusCode == 200) {
-      final json = jsonDecode(resp.body) as Map<String, dynamic>;
-      final features = (json['features'] as List?) ?? [];
-      if (features.isNotEmpty) {
-        final f = features.first as Map<String, dynamic>;
-        final fullAddress = (f['place_name'] ?? '').toString();
+      // Espera intencional de 2s para permitir fijar una ubicación más precisa
+      await Future.delayed(const Duration(seconds: 2));
 
-        String city = '';
-        final ctx = (f['context'] as List?) ?? [];
-        for (final c in ctx) {
-          final id = (c['id'] ?? '').toString();
-          if (id.startsWith('place')) {
-            city = (c['text'] ?? '').toString();
-            break;
-          }
-        }
-        if (city.isEmpty) city = (f['text'] ?? '').toString();
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.best,
+        timeLimit: const Duration(seconds: 10),
+      );
+      final here = LatLng(pos.latitude, pos.longitude);
 
-        return {'direccion': fullAddress, 'ciudad': city};
-      }
-    }
-    return {'direccion': '', 'ciudad': ''};
-  }
-
-  // =================== Buscador combinado ===================
-
-  void _onSearchChanged(String q) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 220), () {
-      _fetchSuggestionsCombined(q);
-    });
-  }
-
-  Future<void> _fetchSuggestionsCombined(String raw) async {
-    final query = raw.trim();
-    if (query.length < 2) {
-      setState(() {
-        _suggestions = [];
-        _searchLoading = false;
-        _selectedIndex = -1;
-      });
-      return;
-    }
-
-    // cache
-    final cacheKey = query.toLowerCase();
-    final cached = _cache[cacheKey];
-    if (cached != null) {
-      setState(() {
-        _suggestions = cached;
-        _searchLoading = false;
-        _selectedIndex = -1;
-      });
-      return;
-    }
-
-    setState(() => _searchLoading = true);
-    final int reqId = ++_reqCounter;
-
-    // Proximidad: centro de cámara
-    final bias = _mapController.camera.center;
-
-    // Disparamos en paralelo
-    final futures = await Future.wait<List<_PlaceSuggestion>>([
-      _searchMapbox(query, bias),
-      _searchNominatim(query, bias),
-    ], eagerError: false);
-
-    if (!mounted || reqId != _reqCounter) return;
-
-    // Fusionar y rankear
-    final merged = _mergeRank(futures.expand((x) => x).toList(), bias);
-
-    // cachear
-    _cache[cacheKey] = merged;
-
-    setState(() {
-      _suggestions = merged;
-      _searchLoading = false;
-      _selectedIndex = -1;
-    });
-  }
-
-  Future<List<_PlaceSuggestion>> _searchMapbox(
-      String query, LatLng bias) async {
-    final url =
-        'https://api.mapbox.com/geocoding/v5/mapbox.places/${Uri.encodeComponent(query)}.json'
-        '?access_token=$_mapboxToken'
-        '&autocomplete=true'
-        '&language=es'
-        '&limit=7'
-        '&types=place,address,poi'
-        '&proximity=${bias.longitude},${bias.latitude}'
-        '&country=bo';
-    try {
-      final resp = await http.get(Uri.parse(url));
-      if (resp.statusCode != 200) return [];
-      final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      final feats = (data['features'] as List?) ?? [];
-      return feats
-          .map<_PlaceSuggestion>((f) {
-            final m = (f as Map).cast<String, dynamic>();
-            final coords = (m['geometry']?['coordinates'] as List?) ?? [];
-            final lng =
-                coords.length >= 2 ? (coords[0] as num).toDouble() : null;
-            final lat =
-                coords.length >= 2 ? (coords[1] as num).toDouble() : null;
-            final title = (m['text'] ?? '').toString();
-            final subtitle = (m['place_name'] ?? '').toString();
-            return _PlaceSuggestion(
-              id: (m['id'] ?? '').toString(),
-              provider: 'mapbox',
-              title: title,
-              subtitle: subtitle,
-              lat: lat,
-              lng: lng,
-            );
-          })
-          .where((p) => p.lat != null && p.lng != null)
-          .toList();
+      _myPos = here;
+      _animateTo(here, zoom: 15.5);
+      await _reverseGeocode(here);
     } catch (_) {
-      return [];
+      // Silencioso: mantenemos la vista por defecto
+    } finally {
+      if (mounted) setState(() => _locating = false);
     }
   }
 
-  Future<List<_PlaceSuggestion>> _searchNominatim(
-      String query, LatLng bias) async {
-    // Nominatim pide User-Agent identificable
-    final uri = Uri.parse('https://nominatim.openstreetmap.org/search'
-        '?q=${Uri.encodeComponent(query)}'
-        '&format=jsonv2&addressdetails=1&accept-language=es&limit=6'
-        // Bias aproximado con viewbox y bounded=1 (opcional). Aquí lo dejamos sin recorte estricto.
-        );
+  void _animateTo(LatLng p, {double zoom = 15}) {
+    _mapController.move(p, zoom);
+    setState(() => _center = p);
+  }
+
+  // ==========================
+  // MAPBOX GEOCODING (solo Bolivia)
+  // ==========================
+  Future<List<_PlaceSug>> _forwardGeocode(String query) async {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+
+    // Cache 30s (clave incluye texto)
+    final cacheKey = 'bo|$q';
+    final hit = _searchCache[cacheKey];
+    if (hit != null && DateTime.now().difference(hit.ts) < _searchCacheTtl) {
+      return hit.data;
+    }
+
+    final params = <String, String>{
+      'access_token': MAPBOX_TOKEN,
+      'autocomplete': 'true',
+      'language': 'es',
+      'limit': '5',
+      'country': _MB_COUNTRY, // ← SIEMPRE Bolivia
+      'bbox': _BOLIVIA_BBOX.join(','), // ← recortar a Bolivia
+    };
+
+    final uri = Uri.https(
+      'api.mapbox.com',
+      '/geocoding/v5/mapbox.places/${Uri.encodeComponent(q)}.json',
+      params,
+    );
+    final res = await http.get(uri);
+    if (res.statusCode != 200) return [];
+
+    final data = jsonDecode(res.body);
+    final feats = (data['features'] as List?) ?? [];
+    final out = feats
+        .map<_PlaceSug>((f) {
+          final coords = f['center'] as List?;
+          final text = f['place_name']?.toString() ?? '';
+          // AHORA: obtenemos el DEPARTAMENTO
+          final depto = _getDepartamentoFromContext(f);
+          return _PlaceSug(
+            name: text,
+            city: depto, // city = departamento
+            coord: (coords != null && coords.length == 2)
+                ? LatLng(
+                    (coords[1] as num).toDouble(),
+                    (coords[0] as num).toDouble(),
+                  )
+                : null,
+          );
+        })
+        .where((s) => s.coord != null)
+        .toList();
+
+    _searchCache[cacheKey] = _CacheEntry(out);
+    return out;
+  }
+
+  Future<void> _reverseGeocode(LatLng p) async {
+    // Si no nos movimos lo suficiente, evita llamada
+    if (_lastReversePoint != null) {
+      final d = _dist(p, _lastReversePoint!);
+      if (d < _minMoveMetersToReverse) return;
+    }
+    _lastReversePoint = p;
+
+    setState(() => _loadingAddr = true);
     try {
-      final resp = await http.get(
-        uri,
-        headers: {
-          'User-Agent': 'quimisol-app/1.0 (contact: soporte@quimisol.example)'
+      final uri = Uri.https(
+        'api.mapbox.com',
+        '/geocoding/v5/mapbox.places/${p.longitude},${p.latitude}.json',
+        {
+          'access_token': MAPBOX_TOKEN,
+          'language': 'es',
+          'limit': '1',
+          'country': _MB_COUNTRY, // ← también forzamos a Bolivia
+          'bbox': _BOLIVIA_BBOX.join(','), // ← y recortamos
         },
       );
-      if (resp.statusCode != 200) return [];
-      final list = (jsonDecode(resp.body) as List?) ?? [];
-      return list.map<_PlaceSuggestion>((e) {
-        final m = (e as Map).cast<String, dynamic>();
-        final lat = (num.tryParse((m['lat'] ?? '').toString()) ?? 0).toDouble();
-        final lng = (num.tryParse((m['lon'] ?? '').toString()) ?? 0).toDouble();
-        final disp = (m['display_name'] ?? '').toString();
-        final addr = (m['address'] as Map?)?.cast<String, dynamic>() ?? {};
-        final city = (addr['city'] ??
-                addr['town'] ??
-                addr['village'] ??
-                addr['state_district'] ??
-                '')
-            .toString();
-        // título corto
-        final title = city.isNotEmpty
-            ? city
-            : (addr['road'] ?? addr['neighbourhood'] ?? 'Lugar').toString();
-        return _PlaceSuggestion(
-          id: (m['osm_id'] ?? '').toString(),
-          provider: 'nominatim',
-          title: title,
-          subtitle: disp,
-          lat: lat,
-          lng: lng,
-        );
-      }).toList();
-    } catch (_) {
-      return [];
+      final res = await http.get(uri);
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final feats = (data['features'] as List?) ?? [];
+        if (feats.isNotEmpty) {
+          final f = feats.first;
+          final placeName = f['place_name']?.toString() ?? '';
+          // DEPARTAMENTO desde el contexto
+          final depto = _getDepartamentoFromContext(f) ?? '';
+          setState(() {
+            _direccion = placeName;
+            _ciudad = depto; // aquí guardas SOLO el departamento
+          });
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _loadingAddr = false);
     }
   }
 
-  List<_PlaceSuggestion> _mergeRank(List<_PlaceSuggestion> items, LatLng bias) {
-    // 1) dedupe por (título+lat+lng) aprox
-    final seen = <String>{};
-    final deduped = <_PlaceSuggestion>[];
-    for (final p in items) {
-      final key =
-          '${p.title.toLowerCase()}|${(p.lat ?? 0).toStringAsFixed(4)},${(p.lng ?? 0).toStringAsFixed(4)}';
-      if (seen.add(key)) deduped.add(p);
-    }
-    // 2) score por distancia + proveedor
-    for (final p in deduped) {
-      final d = _haversine(bias.latitude, bias.longitude, p.lat!, p.lng!);
-      // Proveedor base: Mapbox un pelín preferido si empate
-      final providerBonus = (p.provider == 'mapbox') ? -200.0 : 0.0;
-      p.score = d + providerBonus; // menor = mejor
-    }
-    deduped.sort((a, b) => a.score.compareTo(b.score));
-    return deduped;
-  }
+  /// Extrae el **departamento** desde el contexto de Mapbox.
+  /// - Prioriza `region.*` (departamento).
+  /// - Si no hay `region.*`, usa `place.*` como fallback.
+  /// - Si nada, usa el `text` del feature.
+  String? _getDepartamentoFromContext(Map f) {
+    final ctx = (f['context'] as List?) ?? [];
+    String? depto;
 
-  double _haversine(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371000.0; // m
-    double dLat = _deg2rad(lat2 - lat1);
-    double dLon = _deg2rad(lon2 - lon1);
-    final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_deg2rad(lat1)) *
-            cos(_deg2rad(lat2)) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
-    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    return R * c;
-  }
-
-  double _deg2rad(double d) => d * pi / 180.0;
-
-  Future<void> _selectSuggestion(_PlaceSuggestion s) async {
-    setState(() {
-      _suggestions = [];
-      _selectedIndex = -1;
-    });
-    FocusScope.of(context).unfocus();
-
-    final lat = s.lat, lng = s.lng;
-    if (lat == null || lng == null) return;
-
-    final point = LatLng(lat, lng);
-    _mapController.move(point, 15.0);
-    _setPoint(point);
-
-    // Completa campos
-    _dirCtrl.text = s.subtitle;
-    // Extract city rápido desde subtítulo si no vino en título
-    String city = s.title;
-    if (city.toLowerCase() == 'lugar' || city.isEmpty) {
-      // intenta con coma
-      final parts = s.subtitle.split(',');
-      if (parts.length >= 2) city = parts[parts.length - 3].trim();
-    }
-    _cityCtrl.text = city;
-    _softExpand();
-  }
-
-  void _clearSearch() {
-    _searchCtrl.clear();
-    setState(() {
-      _suggestions = [];
-      _selectedIndex = -1;
-    });
-    FocusScope.of(context).requestFocus(_searchFocus);
-  }
-
-  // Navegación con teclado (↑/↓/Enter)
-  void _handleSearchKey(RawKeyEvent event) {
-    if (_suggestions.isEmpty) return;
-    if (event is! RawKeyDownEvent) return;
-
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      setState(() {
-        _selectedIndex = (_selectedIndex + 1).clamp(0, _suggestions.length - 1);
-      });
-    } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      setState(() {
-        _selectedIndex =
-            (_selectedIndex - 1).clamp(-1, _suggestions.length - 1);
-      });
-    } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-      if (_selectedIndex >= 0 && _selectedIndex < _suggestions.length) {
-        _selectSuggestion(_suggestions[_selectedIndex]);
+    // 1) Primero: region.* (departamento)
+    for (final c in ctx) {
+      final id = (c['id'] ?? '').toString();
+      if (id.startsWith('region.')) {
+        depto = c['text']?.toString();
+        break;
       }
     }
+
+    // 2) Si no hay region, intenta con place.* (ciudad/gran área)
+    if (depto == null) {
+      for (final c in ctx) {
+        final id = (c['id'] ?? '').toString();
+        if (id.startsWith('place.')) {
+          depto = c['text']?.toString();
+          break;
+        }
+      }
+    }
+
+    // 3) Último fallback: el texto principal del feature
+    depto ??= f['text']?.toString();
+
+    return depto;
   }
 
-  // =================== Form ===================
-
-  Future<void> _submit() async {
-    if (_lat == null || _lng == null) {
-      _snack(
-          'Toca el mapa o usa el buscador / botón “Usar punto del centro” para seleccionar la ubicación');
+  // ==========================
+  // GUARDAR
+  // ==========================
+  Future<void> _onSave() async {
+    if (_saving) return;
+    final idPersona = await AuthStorage.getIdPersona();
+    if (idPersona == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Inicia sesión para guardar ubicaciones.'),
+        ),
+      );
       return;
     }
-    if (!_formKey.currentState!.validate()) return;
+    if (_nombreCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresa un nombre para la ubicación.')),
+      );
+      return;
+    }
+    if (_direccion.trim().isEmpty || _ciudad.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona una dirección válida.')),
+      );
+      return;
+    }
 
-    setState(() => _submitting = true);
+    setState(() => _saving = true);
     try {
-      final data = {
-        'nombre': _nameCtrl.text.trim(),
-        'direccion': _dirCtrl.text.trim(),
-        'ciudad': _cityCtrl.text.trim(),
-        'latitud': _lat,
-        'longitud': _lng,
-      };
-      Modular.to.pop(data);
+      final svc = LocationsService(baseUrl: widget.baseUrl);
+      await svc.create(
+        idPersona: idPersona,
+        nombre: _nombreCtrl.text.trim(), // ← nombre personalizado
+        ciudad: _ciudad, // ← aquí va el DEPARTAMENTO
+        direccion: _direccion,
+        latitud: _center.latitude,
+        longitud: _center.longitude,
+      );
+
+      await AuthStorage.refreshFromDatabase(
+        idPersona: idPersona,
+        baseUrl: widget.baseUrl,
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ubicación guardada ✅')));
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) setState(() => _saving = false);
     }
   }
 
-  void _softExpand() {
-    if (!_expanded) {
-      _dragCtrl
-          .animateTo(
-            0.35,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-          )
-          .catchError((_) {});
-    }
-  }
-
-  void _snack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  // =================== UI ===================
-
+  // ==========================
+  // UI
+  // ==========================
   @override
   Widget build(BuildContext context) {
-    // Retícula central
-    final centerReticle = IgnorePointer(
-      ignoring: true,
-      child: Align(
-        alignment: Alignment.center,
-        child: Transform.translate(
-          offset: const Offset(0, -12),
-          child: Icon(
-            Icons.add_location_alt,
-            size: 28,
-            color: (_lat == null) ? Colors.grey.shade400 : Colors.blueAccent,
-          ),
-        ),
-      ),
-    );
-
-    // Tiles Mapbox (512px; zoomOffset:-1)
-    final mapboxTileUrl =
-        'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=$_mapboxToken';
-
     return Scaffold(
-      appBar: AppBar(title: const Text("Agregar ubicación")),
+      backgroundColor: Palette.fieldBg,
+      appBar: AppBar(
+        title: const Text('Agregar ubicación'),
+        backgroundColor: const Color.fromARGB(255, 248, 156, 254),
+      ),
       body: Stack(
         children: [
-          // MAPA
+          // Mapa
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _initialTarget,
-              initialZoom: 12.5,
-              onTap: _onMapTap,
+              initialCenter: _center,
+              initialZoom: 14,
+              onPositionChanged: (camera, hasGesture) {
+                final c = camera.center;
+                if (c != null) {
+                  setState(() => _center = c);
+                  _moveDebouncer?.cancel();
+                  _moveDebouncer = Timer(
+                    const Duration(milliseconds: _reverseDebounceMs),
+                    () => _reverseGeocode(_center),
+                  );
+                }
+              },
+              onTap: (tapPos, latLng) async {
+                _animateTo(latLng, zoom: _mapController.camera.zoom);
+                await _reverseGeocode(latLng);
+              },
             ),
             children: [
               TileLayer(
-                urlTemplate: mapboxTileUrl,
-                tileSize: 512,
-                zoomOffset: -1,
-                userAgentPackageName: 'com.example.pr_quimisol_srl',
+                urlTemplate:
+                    'https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}?access_token=$MAPBOX_TOKEN',
+                tileProvider: CancellableNetworkTileProvider(),
+                userAgentPackageName: 'quimisol.app',
               ),
-              MarkerLayer(markers: _markers),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _center,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(
+                      Icons.location_on,
+                      size: 40,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
 
-          // Retícula
-          centerReticle,
-
-          // BUSCADOR FLOTANTE
+          // Buscador (bonito, siempre Bolivia)
           Positioned(
-            top: 14,
-            left: 14,
-            right: 14,
-            child: Material(
-              elevation: 10,
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 14,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: RawKeyboardListener(
-                  focusNode: _searchFocus,
-                  onKey: _handleSearchKey,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, color: Colors.black54),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchCtrl,
-                          decoration: const InputDecoration(
-                            hintText: 'Buscar dirección o lugar...',
-                            border: InputBorder.none,
-                          ),
-                          onChanged: _onSearchChanged,
-                          onTap: () {
-                            if (_searchCtrl.text.trim().length >= 2) {
-                              _fetchSuggestionsCombined(_searchCtrl.text);
-                            }
-                          },
+            left: 16,
+            right: 16,
+            top: 16,
+            child: Builder(
+              builder: (context) {
+                const accent = Color(0xFFF48FB1); // rosa suave
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Material(
+                      elevation: 6,
+                      borderRadius: BorderRadius.circular(28),
+                      shadowColor: Colors.black26,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(28),
+                          color: Colors.white,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: accent.withOpacity(0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.search_rounded,
+                                size: 18,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _searchCtrl,
+                                textInputAction: TextInputAction.search,
+                                onChanged: (txt) {
+                                  _searchDebouncer?.cancel();
+                                  _searchDebouncer = Timer(
+                                    const Duration(milliseconds: 320),
+                                    () async {
+                                      final sugs = await _forwardGeocode(txt);
+                                      if (!mounted) return;
+                                      setState(() {
+                                        _sugs = sugs;
+                                        _showSug = sugs.isNotEmpty;
+                                      });
+                                    },
+                                  );
+                                },
+                                onSubmitted: (_) =>
+                                    FocusScope.of(context).unfocus(),
+                                decoration: const InputDecoration(
+                                  hintText:
+                                      'Buscar dirección, zona o lugar en Bolivia…',
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            if (_searchCtrl.text.isNotEmpty)
+                              IconButton(
+                                tooltip: 'Limpiar búsqueda',
+                                icon: const Icon(
+                                  Icons.close_rounded,
+                                  size: 18,
+                                  color: Colors.black54,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchCtrl.clear();
+                                    _sugs = [];
+                                    _showSug = false;
+                                  });
+                                },
+                              ),
+                          ],
                         ),
                       ),
-                      if (_searchLoading)
-                        const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      if (_searchCtrl.text.isNotEmpty && !_searchLoading)
-                        IconButton(
-                          tooltip: 'Limpiar',
-                          onPressed: _clearSearch,
-                          icon: const Icon(Icons.close, color: Colors.black45),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // SUGERENCIAS (overlay)
-          if (_suggestions.isNotEmpty)
-            Positioned(
-              top: 74,
-              left: 14,
-              right: 14,
-              child: Material(
-                elevation: 12,
-                borderRadius: BorderRadius.circular(12),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 360),
-                  child: ListView.separated(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    itemCount: _suggestions.length,
-                    separatorBuilder: (_, __) =>
-                        const Divider(height: 1, color: Color(0xFFE5E7EB)),
-                    itemBuilder: (_, i) {
-                      final p = _suggestions[i];
-                      final selected = i == _selectedIndex;
-                      return InkWell(
-                        onTap: () => _selectSuggestion(p),
-                        child: Container(
-                          color:
-                              selected ? const Color(0xFFF1F5F9) : Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                p.provider == 'mapbox'
-                                    ? Icons.map
-                                    : Icons.public,
-                                color: Colors.blueAccent,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(p.title,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 14)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      p.subtitle,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          color: Colors.black54),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-
-          // Botón “Usar punto del centro”
-          Positioned(
-            right: 16,
-            bottom: 140,
-            child: FloatingActionButton.extended(
-              heroTag: 'useCenter',
-              onPressed: _useCenterAsPoint,
-              icon: const Icon(Icons.my_location),
-              label: Row(
-                children: [
-                  const Text('Usar punto del centro'),
-                  if (_geocoding) ...[
-                    const SizedBox(width: 10),
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  ],
-                ],
-              ),
-            ),
-          ),
-
-          // Bottom sheet con formulario
-          DraggableScrollableSheet(
-            controller: _dragCtrl,
-            initialChildSize: 0.22,
-            minChildSize: 0.18,
-            maxChildSize: 0.70,
-            snap: true,
-            snapSizes: const [0.22, 0.7],
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 12,
-                      offset: Offset(0, -2),
                     ),
-                  ],
-                ),
-                child: SingleChildScrollView(
-                  controller: scrollController,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 5,
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.black12,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
+                    if (_showSug)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: const [
+                            BoxShadow(
+                              blurRadius: 10,
+                              color: Colors.black26,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            "Ubicación de sucursal",
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _nameCtrl,
-                          textCapitalization: TextCapitalization.words,
-                          decoration: const InputDecoration(
-                            labelText: "Nombre ubicación",
-                            hintText: "Ej: Sucursal Centro",
-                            prefixIcon: Icon(Icons.flag),
-                          ),
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? "Requerido"
-                              : null,
-                        ),
-                        AnimatedCrossFade(
-                          crossFadeState: _expanded
-                              ? CrossFadeState.showFirst
-                              : CrossFadeState.showSecond,
-                          duration: const Duration(milliseconds: 200),
-                          firstChild: Column(
-                            children: [
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: _dirCtrl,
-                                decoration: InputDecoration(
-                                  labelText: "Dirección",
-                                  hintText:
-                                      "Se completa al elegir el punto o una sugerencia",
-                                  prefixIcon: const Icon(Icons.place),
-                                  suffixIcon: _geocoding
-                                      ? const Padding(
-                                          padding: EdgeInsets.all(12.0),
-                                          child: SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2),
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                                validator: (v) =>
-                                    (v == null || v.trim().isEmpty)
-                                        ? "Requerido"
-                                        : null,
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: _cityCtrl,
-                                decoration: const InputDecoration(
-                                  labelText: "Ciudad",
-                                  hintText:
-                                      "Se completa al elegir el punto o una sugerencia",
-                                  prefixIcon: Icon(Icons.location_city),
-                                ),
-                                validator: (v) =>
-                                    (v == null || v.trim().isEmpty)
-                                        ? "Requerido"
-                                        : null,
-                              ),
-                              const SizedBox(height: 12),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  (_lat == null || _lng == null)
-                                      ? "Toca el mapa o usa el buscador para fijar el punto"
-                                      : "Lat: ${_lat!.toStringAsFixed(6)}  •  Lng: ${_lng!.toStringAsFixed(6)}",
-                                  style: TextStyle(
-                                    color: (_lat == null)
-                                        ? Colors.red
-                                        : Colors.black54,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 260),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: _sugs.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, i) {
+                              final s = _sugs[i];
+                              return ListTile(
+                                leading: Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: accent.withOpacity(0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.place_outlined,
+                                    size: 18,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 16),
-                              AppButton(
-                                label: "Agregar",
-                                icon: Icons.check,
-                                isLoading: _submitting,
-                                onPressed: _submitting ? null : _submit,
-                              ),
-                            ],
+                                title: Text(
+                                  s.name,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                subtitle: s.city != null && s.city!.isNotEmpty
+                                    ? Text(
+                                        s.city!, // aquí ya es el departamento
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                          fontSize: 12,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Bolivia',
+                                        style: TextStyle(
+                                          color: Colors.black45,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                onTap: () async {
+                                  setState(() {
+                                    _showSug = false;
+                                    _searchCtrl.text = s.name;
+                                  });
+                                  _animateTo(s.coord!, zoom: 16);
+                                  await _reverseGeocode(s.coord!);
+                                },
+                              );
+                            },
                           ),
-                          secondChild: const SizedBox(height: 8),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+
+          // FAB mi ubicación
+          Positioned(
+            right: 16,
+            bottom: 260,
+            child: FloatingActionButton(
+              heroTag: 'geo',
+              backgroundColor: Colors.white,
+              foregroundColor: Palette.primary,
+              onPressed: _goToMyLocation,
+              child: _locating
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.my_location),
+            ),
+          ),
+
+          // Modal inferior (incluye Nombre de ubicación)
+          _BottomCard(
+            nombreCtrl: _nombreCtrl,
+            direccion: _direccion,
+            ciudad: _ciudad,
+            loading: _loadingAddr,
+            saving: _saving,
+            onSave: _onSave,
           ),
         ],
       ),
@@ -781,23 +594,146 @@ class _AddLocationMapPageState extends State<AddLocationMapPage> {
   }
 }
 
-// ======= Modelo interno de sugerencia =======
-class _PlaceSuggestion {
-  _PlaceSuggestion({
-    required this.id,
-    required this.provider,
-    required this.title,
-    required this.subtitle,
-    required this.lat,
-    required this.lng,
+/// Tarjeta inferior con datos y botón Guardar
+class _BottomCard extends StatelessWidget {
+  final TextEditingController nombreCtrl;
+  final String direccion;
+  final String ciudad; // departamento
+  final bool loading;
+  final bool saving;
+  final VoidCallback onSave;
+
+  const _BottomCard({
+    required this.nombreCtrl,
+    required this.direccion,
+    required this.ciudad,
+    required this.loading,
+    required this.saving,
+    required this.onSave,
   });
 
-  final String id;
-  final String provider; // 'mapbox' | 'nominatim'
-  final String title;
-  final String subtitle;
-  final double? lat;
-  final double? lng;
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const [BoxShadow(blurRadius: 12, color: Colors.black26)],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 54,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.black12,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 12),
 
-  double score = 0; // para ranking (menor = mejor)
+            // Nombre de ubicación
+            TextField(
+              controller: nombreCtrl,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: 'Nombre de la ubicación',
+                hintText: 'Ej: Sucursal La Paz, Sucursal 1',
+                prefixIcon: const Icon(Icons.store_mall_directory_outlined),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Icon(Icons.location_on_outlined),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: loading
+                      ? const LinearProgressIndicator(minHeight: 6)
+                      : Text(
+                          direccion.isEmpty
+                              ? 'Toca el mapa o busca una dirección'
+                              : direccion,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.apartment_outlined),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    ciudad.isEmpty ? 'Departamento' : ciudad,
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: saving ? null : onSave,
+                icon: saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.save_outlined),
+                label: Text(saving ? 'Guardando…' : 'Guardar ubicación'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 244, 144, 255),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Modelo simple para sugerencias
+class _PlaceSug {
+  final String name;
+  final String? city; // aquí guardamos el DEPARTAMENTO
+  final LatLng? coord;
+  _PlaceSug({required this.name, this.city, this.coord});
+}
+
+/// Cache entry genérico
+class _CacheEntry<T> {
+  final T data;
+  final DateTime ts;
+  _CacheEntry(this.data) : ts = DateTime.now();
 }

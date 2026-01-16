@@ -42,11 +42,20 @@ class _HomeUserPerfilState extends State<HomeUserPerfil> {
     return Scaffold(
       backgroundColor: Palette.fieldBg,
       appBar: AppBar(
-        backgroundColor: Palette.fieldBg,
+        automaticallyImplyLeading: false,
+        backgroundColor: const Color(0xFFF3E6FA),
         elevation: 0,
-        title: const Text('Mi perfil', style: TextStyle(color: Colors.black)),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
+        title: Image.asset(
+          'assets/images/logo-quimisol.png',
+          height: 60,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications, color: Palette.primary),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -61,7 +70,10 @@ class _HomeUserPerfilState extends State<HomeUserPerfil> {
           Center(
             child: Text(
               nombre,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
           ),
           Center(
@@ -72,14 +84,27 @@ class _HomeUserPerfilState extends State<HomeUserPerfil> {
           ),
           const SizedBox(height: 30),
 
-          const Text("Perfil", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            "Perfil",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 10),
-          _buildTile(Icons.location_on, "Direcciones", () {}),
-          _buildTile(Icons.favorite, "Favoritos", () => Modular.to.pushNamed('/favoritos')),
-
+          _buildTile(
+            Icons.location_on,
+            "Direcciones",
+            () => Modular.to.pushNamed('/locations'),
+          ),
+          _buildTile(
+            Icons.favorite,
+            "Favoritos",
+            () => Modular.to.pushNamed('/favoritos'),
+          ),
 
           const SizedBox(height: 24),
-          const Text("Configuración", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            "Configuración",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 10),
           _buildTile(Icons.notifications, "Notificaciones", () {}),
           _buildTile(Icons.info_outline, "Información legal", () {}),

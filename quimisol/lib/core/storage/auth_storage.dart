@@ -15,6 +15,9 @@ class AuthStorage {
   static const _kRol         = 'user_rol';
   static const _kUbicaciones = 'user_ubicaciones';
 
+  // 👉 NUEVO: idusuario de la tabla usuario
+  static const _kIdUsuario   = 'user_idusuario';
+
   static final ValueNotifier<bool> loginStatus = ValueNotifier<bool>(false);
 
   /// Inicializa el estado de sesión
@@ -30,6 +33,9 @@ class AuthStorage {
     String? telefono,
     String rol = 'cliente',
     List<Map<String, dynamic>> ubicaciones = const [],
+
+    // 👉 NUEVO (opcional, no rompe nada)
+    int? idUsuario,
   }) async {
     final p = await SharedPreferences.getInstance();
     await p.setBool(_kLoggedIn, true);
@@ -38,6 +44,7 @@ class AuthStorage {
     await p.setString(_kRol, rol);
     if (telefono != null) await p.setString(_kTelefono, telefono);
     if (idPersona != null) await p.setInt(_kIdPersona, idPersona);
+    if (idUsuario != null) await p.setInt(_kIdUsuario, idUsuario);
     await p.setString(_kUbicaciones, jsonEncode(ubicaciones));
     loginStatus.value = true;
   }
@@ -75,6 +82,12 @@ class AuthStorage {
     return p.getInt(_kIdPersona);
   }
 
+  /// 👉 NUEVO: obtener idusuario (tabla usuario)
+  static Future<int?> getIdUsuario() async {
+    final p = await SharedPreferences.getInstance();
+    return p.getInt(_kIdUsuario);
+  }
+
   static Future<String?> getRol() async {
     final p = await SharedPreferences.getInstance();
     return p.getString(_kRol);
@@ -106,6 +119,7 @@ class AuthStorage {
     final user   = await userService.getUser(idPersona);
     final ubic   = await locService.listLocations(idPersona);
 
+    // 👇 Aquí asumimos que user?.idusuario viene del backend
     await saveUser(
       nombre: person?.name ?? '',
       telefono: person?.phone,
@@ -113,6 +127,7 @@ class AuthStorage {
       idPersona: idPersona,
       rol: user?.rol ?? 'cliente',
       ubicaciones: ubic,
+      idUsuario: user?.idUsuario, // 👉 NUEVO
     );
 
     debugPrint("✅ Datos refrescados desde DB y guardados en AuthStorage");
@@ -123,15 +138,17 @@ class AuthStorage {
     final nombre   = await getNombre();
     final correo   = await getCorreo();
     final tel      = await getTelefono();
-    final id       = await getIdPersona();
+    final idPer    = await getIdPersona();
+    final idUser   = await getIdUsuario();
     final rol      = await getRol();
 
     debugPrint("======= AUTH STORAGE DATA =======");
-    debugPrint("Nombre   : $nombre");
-    debugPrint("Correo   : $correo");
-    debugPrint("Teléfono : $tel");
-    debugPrint("IdPersona: $id");
-    debugPrint("Rol      : $rol");
+    debugPrint("Nombre     : $nombre");
+    debugPrint("Correo     : $correo");
+    debugPrint("Teléfono   : $tel");
+    debugPrint("IdPersona  : $idPer");
+    debugPrint("IdUsuario  : $idUser");
+    debugPrint("Rol        : $rol");
     debugPrint("=================================");
   }
 
@@ -139,11 +156,12 @@ class AuthStorage {
   static Future<Map<String, dynamic>> getUserData() async {
     final p = await SharedPreferences.getInstance();
     return {
-      'nombre': p.getString(_kNombre),
-      'correo': p.getString(_kCorreo),
-      'telefono': p.getString(_kTelefono),
+      'nombre':    p.getString(_kNombre),
+      'correo':    p.getString(_kCorreo),
+      'telefono':  p.getString(_kTelefono),
       'idpersona': p.getInt(_kIdPersona),
-      'rol': p.getString(_kRol),
+      'idusuario': p.getInt(_kIdUsuario), // 👉 NUEVO
+      'rol':       p.getString(_kRol),
     };
   }
 

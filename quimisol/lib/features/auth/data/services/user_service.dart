@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class UserService {
-  final String baseUrl = "http://localhost:3005"; 
+  final String baseUrl = "http://10.192.87.85:3005";
 
   Future<Map<String, dynamic>> login(String correo, String password) async {
     final res = await http.post(
@@ -19,7 +19,11 @@ class UserService {
   }
 
   Future<Map<String, dynamic>> register(
-      String nombre, String correo, String password, String telefono) async {
+    String nombre,
+    String correo,
+    String password,
+    String telefono,
+  ) async {
     final res = await http.post(
       Uri.parse("$baseUrl/auth/register"),
       headers: {"Content-Type": "application/json"},

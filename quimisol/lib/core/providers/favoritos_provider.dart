@@ -40,7 +40,9 @@ class FavoritosProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await http.get(Uri.parse('http://localhost:3005/favoritos/$_idUsuario'));
+      final res = await http.get(
+        Uri.parse('http://10.192.87.85:3005/favoritos/$_idUsuario'),
+      );
       if (res.statusCode == 200) {
         final List data = jsonDecode(res.body);
         _favoritos = List<Map<String, dynamic>>.from(data);
@@ -66,11 +68,13 @@ class FavoritosProvider extends ChangeNotifier {
 
     final idProducto = producto['idproducto'];
     if (esFavorito(idProducto)) {
-      await http.delete(Uri.parse('http://localhost:3005/favoritos/$idProducto/$_idUsuario'));
+      await http.delete(
+        Uri.parse('http://10.192.87.85:3005/favoritos/$idProducto/$_idUsuario'),
+      );
       _favoritos.removeWhere((p) => p['idproducto'] == idProducto);
     } else {
       final res = await http.post(
-        Uri.parse('http://localhost:3005/favoritos'),
+        Uri.parse('http://10.192.87.85:3005/favoritos'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'idusuario': _idUsuario, 'idproducto': idProducto}),
       );

@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:quimisol/features/admin/productos/data/models/producto_model.dart';
 
 class ProductoService {
-  final String baseUrl = 'http://localhost:3005/productos'; // Ajusta si usas otro puerto
+  final String baseUrl =
+      'http://10.192.87.85:3005/productos'; // Ajusta si usas otro puerto
 
   // 🔹 Obtener todos los productos
   Future<List<Producto>> getProductos() async {

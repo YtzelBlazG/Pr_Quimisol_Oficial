@@ -26,6 +26,8 @@ class _SplashScreenState extends State<SplashScreen> {
     final idPersona = await AuthStorage.getIdPersona();
     final rol = await AuthStorage.getRol();
 
+    final normRol = (rol ?? '').toString().toLowerCase();
+
     debugPrint("======= AUTH STORAGE DATA (Splash) =======");
     debugPrint("isLogged  : $logged");
     debugPrint("Nombre    : $nombre");
@@ -40,10 +42,14 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (logged) {
-      if (rol == 'admin') {
+      if (normRol == 'admin') {
         Modular.to.pushReplacementNamed('/admin');
+      } else if (normRol == 'repartidor') {
+        // 👇 nueva home para repartidor
+        Modular.to.pushReplacementNamed('/home-repartidor');
       } else {
-        Modular.to.pushReplacementNamed('/home-user'); // cliente logueado
+        // cliente (u otros roles que quieras tratar como cliente)
+        Modular.to.pushReplacementNamed('/home-user');
       }
     } else {
       Modular.to.pushReplacementNamed('/home-guest'); // cliente sin login

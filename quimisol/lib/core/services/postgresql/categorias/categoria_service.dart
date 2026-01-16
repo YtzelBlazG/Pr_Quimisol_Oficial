@@ -2,9 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:quimisol/features/admin/categorias/data/categoria_model.dart';
 
-
 class CategoriaService {
-  final String baseUrl = "http://localhost:3005/categorias";
+  final String baseUrl = "http://10.192.87.85:3005/categorias";
 
   Future<List<Categoria>> obtenerCategorias() async {
     final response = await http.get(Uri.parse(baseUrl));
